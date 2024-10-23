@@ -1,0 +1,68 @@
+repos:
+   -  repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v5.0.0
+      hooks:
+         -  id: trailing-whitespace
+            exclude: ^migrations/
+         -  id: end-of-file-fixer
+            exclude: ^migrations/
+         -  id: check-added-large-files
+            exclude: ^migrations/
+         -  id: debug-statements
+            exclude: ^migrations/
+
+   -  repo: https://github.com/asottile/add-trailing-comma
+      rev: v3.1.0
+      hooks:
+         -  id: add-trailing-comma
+            exclude: ^migrations/
+
+   -  repo: https://github.com/humitos/mirrors-autoflake.git
+      rev: v1.1
+      hooks:
+         -  id: autoflake
+            exclude: ^migrations/
+            types:
+               -  python
+            args:
+               -  --in-place
+               -  --remove-all-unused-imports
+               -  --remove-unused-variable
+               -  --remove-duplicate-keys
+
+   -  repo: https://github.com/pycqa/isort
+      rev: 5.13.2
+      hooks:
+         -  id: isort
+            exclude: ^migrations/versions/
+            name: isort (python)
+            types:
+               -  python
+
+   -  repo: https://github.com/pre-commit/mirrors-autopep8
+      rev: v2.0.4
+      hooks:
+         -  id: autopep8
+            exclude: ^migrations/
+
+   -  repo: https://github.com/psf/black
+      rev: 24.10.0
+      hooks:
+         -  id: black
+            exclude: ^migrations/
+            types:
+               -  python
+            args:
+               -  --line-length=79
+               -  --target-version=py310
+
+   -  repo: https://github.com/pycqa/flake8
+      rev: 7.1.1
+      hooks:
+         -  id: flake8
+            exclude: ^migrations/
+            types:
+               -  python
+            args:
+               -  --max-line-length=79
+               -  --exclude=migrations
