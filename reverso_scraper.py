@@ -91,6 +91,8 @@ def fetch_reverso_content(
     :param word: The word for which the translation examples are fetched.
     :return: The HTML content of the page.
     :raises HTTPError: If the HTTP request fails.
+    :raises Timeout: If the request takes longer
+        than the specified timeout (15 seconds).
     """
     headers = {
         "User-Agent": (
