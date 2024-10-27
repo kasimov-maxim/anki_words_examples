@@ -3,25 +3,19 @@ repos:
       rev: v5.0.0
       hooks:
          -  id: trailing-whitespace
-            exclude: ^migrations/
          -  id: end-of-file-fixer
-            exclude: ^migrations/
          -  id: check-added-large-files
-            exclude: ^migrations/
          -  id: debug-statements
-            exclude: ^migrations/
 
    -  repo: https://github.com/asottile/add-trailing-comma
       rev: v3.1.0
       hooks:
          -  id: add-trailing-comma
-            exclude: ^migrations/
 
    -  repo: https://github.com/humitos/mirrors-autoflake.git
       rev: v1.1
       hooks:
          -  id: autoflake
-            exclude: ^migrations/
             types:
                -  python
             args:
@@ -35,7 +29,6 @@ repos:
       hooks:
          -  id: isort
             args: ["--profile", "black", "--filter-files"]
-            exclude: ^migrations/versions/
             name: isort (python)
             types:
                -  python
@@ -44,13 +37,11 @@ repos:
       rev: v2.0.4
       hooks:
          -  id: autopep8
-            exclude: ^migrations/
 
    -  repo: https://github.com/psf/black
       rev: 24.10.0
       hooks:
          -  id: black
-            exclude: ^migrations/
             types:
                -  python
             args:
@@ -61,9 +52,7 @@ repos:
       rev: 7.1.1
       hooks:
          -  id: flake8
-            exclude: ^migrations/
             types:
                -  python
             args:
                -  --max-line-length=79
-               -  --exclude=migrations
