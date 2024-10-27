@@ -1,7 +1,126 @@
+import time
 from typing import Any
 
 from anki_connect import send_anki_request
-from reverso_scraper import Language, fetch_reverso_examples
+from reverso_scraper import (
+    Language,
+    fetch_reverso_examples,
+    fetch_reverso_synonyms_and_antonyms,
+)
+
+# Interval in seconds to wait between consecutive Anki note updates
+# to avoid server overload
+THROTTLING_INTERVAL: int = 3
+
+
+def get_field_value(note: dict[str, Any], field_name: str) -> str | None:
+    """
+    Retrieves the value of a specified field in a note.
+
+    :param note: A dictionary representing the Anki note.
+    :param field_name: The name of the field whose value to retrieve.
+    :return: The field value as a string if it exists, otherwise None.
+    """
+    return note["fields"].get(field_name, {}).get("value", None)
+
+
+def get_examples(
+    word: str,
+    note: dict[str, Any],
+    example_field: str,
+    source_language: Language,
+    target_language: Language,
+) -> str | None:
+    """
+    Fetches examples for a word if not present in the note.
+
+    :param word: The word to fetch examples for.
+    :param note: A dictionary representing the Anki note.
+    :param example_field: The name of the field where examples are stored.
+    :param source_language: The source language of the word.
+    :param target_language: The target language for example translation.
+    :return: A string containing examples if fetched, otherwise None.
+    """
+    examples: str | None = get_field_value(note, example_field)
+    if examples is None:
+        print(
+            f'Skip examples for word "{word}": '
+            f'"{example_field}" field not found.',
+        )
+        return None
+
+    if examples.strip():
+        print(
+            f'Skip examples for word "{word}": examples already exist.',
+        )
+        return None
+
+    try:
+        examples = fetch_reverso_examples(
+            word,
+            source_language,
+            target_language,
+        )
+        print(f'Examples for "{word}" were successfully fetched.')
+
+    except Exception as exc:
+        print(
+            f'An exception occurred while fetching examples for "{word}": '
+            f"{exc}",
+        )
+
+    return examples
+
+
+def get_synonyms_and_antonyms(
+    word: str,
+    note: dict[str, Any],
+    synonym_field: str,
+    antonym_field: str,
+    source_language: Language,
+) -> tuple[str | None, str | None]:
+    """
+    Fetches synonyms and antonyms for a word if not present in the note.
+
+    :param word: The word to fetch synonyms and antonyms for.
+    :param note: A dictionary representing the Anki note.
+    :param synonym_field: The name of the field where synonyms are stored.
+    :param antonym_field: The name of the field where antonyms are stored.
+    :param source_language: The source language of the word.
+    :return: A tuple containing synonyms and antonyms strings, if available.
+    """
+    synonyms: str | None = get_field_value(note, synonym_field)
+    antonyms: str | None = get_field_value(note, antonym_field)
+
+    if synonyms is None and antonyms is None:
+        print(
+            f'Skip synonyms and antonyms for word "{word}": '
+            "fields not found.",
+        )
+        return None, None
+
+    if synonyms.strip() and antonyms.strip():
+        print(
+            f'Skip synonyms and antonyms for word "{word}": '
+            "data already exists.",
+        )
+        return None, None
+
+    try:
+        synonyms, antonyms = fetch_reverso_synonyms_and_antonyms(
+            word,
+            source_language,
+        )
+        print(
+            f'Synonyms and antonyms for "{word}" were successfully fetched.',
+        )
+    except Exception as exc:
+        print(
+            "An exception occurred while"
+            f'fetching synonyms and antonyms for "{word}": {exc}',
+        )
+
+    return synonyms, antonyms
 
 
 def update_anki_notes_with_examples(
@@ -10,25 +129,43 @@ def update_anki_notes_with_examples(
     target_language: Language,
     word_field: str = "Front",
     example_field: str = "Examples",
+    synonym_field: str = "Synonyms",
+    antonym_field: str = "Antonyms",
 ) -> None:
     """
     Updates Anki notes in the specified deck
-    with usage examples for the given word.
+    with usage examples, synonyms, and antonyms for the given word.
 
     This function fetches all notes in the specified Anki deck,
     retrieves the word from the designated field (default: 'Front'),
-    and if the card doesn't already have examples,
-    fetches and parses example sentences for the word,
-    then updates the card's 'Examples' field with the results.
+    and if the card doesn't already have examples, synonyms, or antonyms,
+    it fetches and parses this data and updates the note fields accordingly.
 
     :param deck_id: The ID of the Anki deck to search for notes.
+    :param source_language: The source language of the word for which
+        examples are fetched.
+    :param target_language: The target language for example translation.
     :param word_field: The name of the field containing the word
-        to search for examples (default: 'Front').
-    :param example_field: The name of the field where examples
-        will be stored (default: 'Examples').
-    :raises Exception: If an error occurs during
-        the fetching or updating process.
+        (default: 'Front').
+    :param example_field: The field where examples are stored
+        (default: 'Examples').
+    :param synonym_field: The field where synonyms are stored
+        (default: 'Synonyms').
+    :param antonym_field: The field where antonyms are stored
+        (default: 'Antonyms').
+    :raises Exception: If an error occurs during fetching or updating.
     """
+
+    def clean_word(word: str) -> str:
+        """
+        Cleans the word by taking the last part if it contains a slash
+        and trimming any extra whitespace.
+
+        :param word: The word to clean.
+        :return: The cleaned word.
+        """
+        return word.split("/")[-1].strip() if "/" in word else word.strip()
+
     # Find all notes in the specified deck
     notes_list: list[int] = send_anki_request(
         "findNotes",
@@ -37,47 +174,55 @@ def update_anki_notes_with_examples(
 
     for note_id in notes_list:
         # Retrieve card information
-        notes: list[dict[str, Any]] = send_anki_request(
+        note: dict[str, Any] = send_anki_request(
             "notesInfo",
             notes=(note_id,),
+        )[-1]
+        word: str | None = get_field_value(note, word_field)
+
+        if not word:
+            print(
+                f'Skip note "{note_id}": '
+                f'the "{word_field}" field is empty.',
+            )
+            continue
+        word = clean_word(word)
+
+        # Fetch examples, synonyms, and antonyms
+        examples = get_examples(
+            word,
+            note,
+            example_field,
+            source_language,
+            target_language,
         )
 
-        # Get the word from the specified field
-        note = notes[-1]
-        word: str = note["fields"][word_field]["value"]
+        synonyms, antonyms = get_synonyms_and_antonyms(
+            word,
+            note,
+            synonym_field,
+            antonym_field,
+            source_language,
+        )
 
-        # If the word contains a slash, take the last part
-        if "/" in word:
-            word = word.split("/")[-1]
-
-        # Check if the card already has examples
-        examples: str = note["fields"][example_field]["value"]
-        if examples.strip():
-            print(f'The word "{word}" already has examples.')
-            continue
-
-        try:
-            examples: str = fetch_reverso_examples(
-                word=word,
-                source_language=source_language,
-                target_language=target_language,
+        # Update note fields if there is new data
+        fields = {
+            key: value
+            for key, value in (
+                (example_field, examples),
+                (synonym_field, synonyms),
+                (antonym_field, antonyms),
             )
+            if value
+        }
 
-            # Update the Anki note with the fetched examples
+        if fields:
             send_anki_request(
                 "updateNote",
-                note={
-                    "id": note_id,
-                    "fields": {
-                        example_field: examples,
-                    },
-                },
+                note={"id": note_id, "fields": fields},
             )
-        except Exception as exc:
-            print(f'An exception occurred while processing the word "{word}".')
-            print(exc)
-        else:
-            print(f'The word "{word}" was processed successfully.')
+            print(f'The word "{word}" updated successfully.')
+            time.sleep(THROTTLING_INTERVAL)
 
 
 if __name__ == "__main__":
@@ -87,4 +232,6 @@ if __name__ == "__main__":
         target_language=Language.UKRAINIAN,
         word_field="Front",
         example_field="examples",
+        synonym_field="synonyms",
+        antonym_field="antonyms",
     )
