@@ -1,6 +1,7 @@
 import os
 import random
 import shutil
+import subprocess
 from typing import Sequence
 
 from gtts import gTTS
@@ -11,10 +12,63 @@ def save_phrase_as_audio(
     output_path: str,
     slow: bool = False,
     lang: str = "en",
+    append_audio: str = None,
 ) -> None:
-    """Generates an audio file for a given phrase."""
+    """
+    Generates an audio file for a given phrase
+    and optionally appends it to an existing audio file.
+    """
+    tmp_output_path = f"{output_path}.gtts"
+
+    # Generate TTS audio
     tts = gTTS(phrase, lang=lang, slow=slow)
-    tts.save(output_path)
+    tts.save(tmp_output_path)
+
+    try:
+        # Convert TTS output to compatible format
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                tmp_output_path,
+                "-ar",
+                "44100",
+                "-ac",
+                "1",
+                "-q:a",
+                "9",
+                output_path,
+            ],
+            check=True,
+        )
+
+        # If an additional audio file needs to be appended
+        if append_audio:
+            if not os.path.exists(append_audio):
+                raise FileNotFoundError(
+                    f"Append audio file not found: {append_audio}",
+                )
+
+            concat_path = f"{output_path}.concat"
+            os.rename(output_path, concat_path)
+
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-i",
+                    f"concat:{concat_path}|{append_audio}",
+                    "-c",
+                    "copy",
+                    output_path,
+                ],
+                check=True,
+            )
+            os.remove(concat_path)
+
+    finally:
+        # Clean up temporary file
+        if os.path.exists(tmp_output_path):
+            os.remove(tmp_output_path)
 
 
 def create_concat_file(input_files: Sequence[str], concat_file: str) -> None:
@@ -55,7 +109,17 @@ def generate_audio(
     temp_files = []
     audio_id = 0
 
-    def append_audio(word, lang, slow=False, copy_count=0, repeat_count=0):
+    def make_audio_file(
+        word: str,
+        lang: str,
+        slow: bool = False,
+        copy_count: int = 0,
+        repeat_count: int = 0,
+        append_audio: str = None,
+    ):
+        """
+        Make audio-file and append it's name to list of audio files
+        """
         nonlocal audio_id
         audio_id += 1
 
@@ -72,6 +136,7 @@ def generate_audio(
             temp_file,
             slow=slow,
             lang=lang,
+            append_audio=append_audio,
         )
         temp_files.append(temp_file)
 
@@ -89,6 +154,12 @@ def generate_audio(
     # Create a temporary directory for storing individual audio files
     os.makedirs(temp_dir, exist_ok=True)
 
+    silence_file = os.path.join(
+        temp_dir,
+        "silence.mp3",
+    )
+    generate_silence(2, silence_file)
+
     # Save each phrase as a separate audio file
     phrases_files_list = []
     for phrase in phrases:
@@ -99,15 +170,15 @@ def generate_audio(
             make_words_list(words_translate),
             make_words_list(words),
         ):
-            append_audio(word=uk_word, lang="uk")
-            append_audio(word=en_word, lang="en", repeat_count=3, slow=True)
+            make_audio_file(word=uk_word, lang="uk", append_audio=silence_file)
+            make_audio_file(word=en_word, lang="en", repeat_count=3, slow=True)
         # ^---
-        append_audio(word=sentence_translate, lang="uk")
+        make_audio_file(word=sentence_translate, lang="uk")
 
         # for speed in ("slow", "slow"):
         for i in range(2):
             phrases_files_list.extend(
-                append_audio(
+                make_audio_file(
                     word=sentence,
                     lang="en",
                     # slow=speed == "slow",
@@ -129,7 +200,7 @@ def generate_audio(
     )
 
     # Clean up temporary files and directories
-    clean_up(temp_files + [concat_list], directories=[temp_dir])
+    clean_up(temp_files + [concat_list, silence_file], directories=[temp_dir])
 
 
 def generate_silence(duration: float, output_path: str) -> None:
