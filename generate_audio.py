@@ -83,9 +83,11 @@ def create_concat_file(input_files: Sequence[str], concat_file: str) -> None:
 def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
     """Deletes specified files and removes empty directories."""
     for file in files:
-        os.remove(file)
+        if os.path.exists(file):
+            os.remove(file)
     for directory in directories:
-        os.rmdir(directory)
+        if os.path.exists(directory):
+            os.rmdir(directory)
 
 
 def generate_audio(
@@ -107,7 +109,6 @@ def generate_audio(
     temp_dir = "temp_audio"
     concat_list = "concat_list.txt"
     temp_files = []
-    audio_id = 0
 
     def make_audio_file(
         word: str,
@@ -118,21 +119,13 @@ def generate_audio(
         append_audio: str = None,
     ):
         """
-        Make audio-file and append it's name to list of audio files
+        Create an audio file for the given word
+        and append it's name to the list of audio files
         """
-        nonlocal audio_id
-        audio_id += 1
-
-        temp_file = os.path.join(
-            temp_dir,
-            f"{audio_id}.mp3",
-        )
+        audio_id = len(temp_files) + 1
+        temp_file = os.path.join(temp_dir, f"{audio_id}.mp3")
         save_phrase_as_audio(
-            (
-                word
-                if not repeat_count
-                else ".\n / / / / / / / / ".join([word] * repeat_count)
-            ),
+            word if not repeat_count else ". ".join([word] * repeat_count),
             temp_file,
             slow=slow,
             lang=lang,
@@ -140,12 +133,10 @@ def generate_audio(
         )
         temp_files.append(temp_file)
 
+        # Create additional copies if required
         copy_files = []
         for i in range(copy_count):
-            copy_filename = os.path.join(
-                temp_dir,
-                f"{audio_id}_{i}.mp3",
-            )
+            copy_filename = os.path.join(temp_dir, f"{audio_id}_{i}.mp3")
             shutil.copy(temp_file, copy_filename)
             copy_files.append(copy_filename)
 
@@ -154,17 +145,13 @@ def generate_audio(
     # Create a temporary directory for storing individual audio files
     os.makedirs(temp_dir, exist_ok=True)
 
-    silence_file = os.path.join(
-        temp_dir,
-        "silence.mp3",
-    )
+    silence_file = os.path.join(temp_dir, "silence.mp3")
     generate_silence(2, silence_file)
 
     # Save each phrase as a separate audio file
     phrases_files_list = []
-    for phrase in phrases:
-        words, words_translate, sentence, sentence_translate = phrase
-        print(f"Generating audio for: {phrase}")
+    for words, words_translate, sentence, sentence_translate in phrases:
+        print(f"Generating audio for: {words}")
 
         for uk_word, en_word in zip(
             make_words_list(words_translate),
@@ -182,7 +169,7 @@ def generate_audio(
                     word=sentence,
                     lang="en",
                     # slow=speed == "slow",
-                    slow="slow",
+                    slow=True,
                     # copy_count=5 if speed == "norm" else 0,
                     copy_count=5 if i == 1 else 0,
                 ),
@@ -195,8 +182,20 @@ def generate_audio(
     create_concat_file(temp_files, concat_list)
 
     # Combine individual audio files into a single file
-    os.system(
-        f"ffmpeg -f concat -safe 0 -i {concat_list} -c copy {output_filename}",
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            concat_list,
+            "-c",
+            "copy",
+            output_filename,
+        ],
+        check=True,
     )
 
     # Clean up temporary files and directories
@@ -210,9 +209,20 @@ def generate_silence(duration: float, output_path: str) -> None:
     :param duration: Duration of the silence in seconds.
     :param output_path: Path to save the silence audio file.
     """
-    os.system(
-        "ffmpeg -f lavfi -i anullsrc=channel_layout=mono:sample_rate=44100 "
-        f"-t {duration} -q:a 9 {output_path}",
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=channel_layout=mono:sample_rate=44100",
+            "-t",
+            str(duration),
+            "-q:a",
+            "9",
+            output_path,
+        ],
+        check=True,
     )
 
 
