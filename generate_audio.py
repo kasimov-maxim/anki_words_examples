@@ -1,3 +1,4 @@
+import hashlib
 import os
 import random
 import subprocess
@@ -8,14 +9,11 @@ from gtts import gTTS
 TEMP_DIR = "temp_audio"
 
 
-def get_audio_id():
-    audio_id: int = 0
-    while True:
-        audio_id += 1
-        yield audio_id
-
-
-audio_id_gen = get_audio_id()
+def get_text_hash(text: str) -> str:
+    """
+    Генерує хеш для заданого тексту.
+    """
+    return hashlib.md5(text.encode("utf-8")).hexdigest()
 
 
 def make_audio_file(
@@ -27,7 +25,13 @@ def make_audio_file(
     Generates an audio file for a given phrase
     and optionally appends it to an existing audio file.
     """
-    output_path = os.path.join(TEMP_DIR, f"{next(audio_id_gen)}.mp3")
+    os.makedirs(TEMP_DIR, exist_ok=True)
+
+    output_path = os.path.join(TEMP_DIR, f"{get_text_hash(text)}.mp3")
+    if os.path.exists(output_path):
+        print(f'Audio file already exists for text: "{text}"')
+        return output_path
+
     tmp_output_path = f"{output_path}.gtts"
 
     # Generate TTS audio
@@ -90,7 +94,10 @@ def generate_audio(
     """
 
     def make_words_list(words_string: str):
-        return map(lambda x: x.strip(), words_string.strip().split(","))
+        return map(
+            lambda x: x.strip().strip("."),
+            words_string.strip().split(","),
+        )
 
     # ^--
 
@@ -192,10 +199,10 @@ def generate_audio(
     )
 
     # Clean up temporary files and directories
-    clean_up(
-        audio_files_list + [concat_list, silence_2, silence_4],
-        directories=[TEMP_DIR],
-    )
+    # clean_up(
+    #     audio_files_list + [concat_list, silence_2, silence_4],
+    #     directories=[TEMP_DIR],
+    # )
 
 
 def generate_silence(duration: float, output_path: str) -> None:
@@ -205,6 +212,9 @@ def generate_silence(duration: float, output_path: str) -> None:
     :param duration: Duration of the silence in seconds.
     :param output_path: Path to save the silence audio file.
     """
+    if os.path.exists(output_path):
+        return
+
     subprocess.run(
         [
             "ffmpeg",
