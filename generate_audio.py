@@ -85,6 +85,7 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
     output_filename: str,
+    spell_words: bool,
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
@@ -136,12 +137,21 @@ def generate_audio(
                         lang="uk",
                     ),
                     silence_2,
-                    # english word + repeat the word by letters
-                    en_word_audio,
-                    make_audio_file(
-                        text=" ".join(en_word),
-                        lang="en",
+                ),
+            )
+            if spell_words:
+                audio_files_list.extend(
+                    (
+                        # english word + repeat the word by letters
+                        en_word_audio,
+                        make_audio_file(
+                            text=" ".join(en_word),
+                            lang="en",
+                        ),
                     ),
+                )
+            audio_files_list.extend(
+                (
                     # repeat english word twice
                     en_word_audio,
                     en_word_audio,
@@ -297,4 +307,5 @@ if __name__ == "__main__":
     generate_audio(
         phrases=phrases,
         output_filename="output_audio.mp3",
+        spell_words=False,
     )
