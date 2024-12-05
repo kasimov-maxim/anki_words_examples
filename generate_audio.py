@@ -85,11 +85,11 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
     shuffle_phrases: bool,
-    output_filename: str,
     include_pause_after_native: bool,
     spell_words: bool,
     word_repetition_count: int,
     include_sentences_summary: bool,
+    output_filename: str,
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
@@ -317,9 +317,9 @@ if __name__ == "__main__":
     generate_audio(
         phrases=phrases,
         shuffle_phrases=True,
-        output_filename="output_audio.mp3",
         include_pause_after_native=False,
         spell_words=False,
         word_repetition_count=3,
         include_sentences_summary=False,
+        output_filename="output_audio.mp3",
     )
