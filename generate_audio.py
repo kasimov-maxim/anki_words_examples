@@ -86,6 +86,7 @@ def generate_audio(
     phrases: Sequence[tuple[str, str]],
     output_filename: str,
     spell_words: bool,
+    include_sentences_summary: bool,
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
@@ -177,16 +178,16 @@ def generate_audio(
             [sentence_audio, silence_4] * 2,
         )
 
-        # repeat all english sentences at the end of summary file
-        copy_audio_files_list.extend(
-            [sentence_audio] * 2,
-        )
-        # ^--
+        if include_sentences_summary:
+            # repeat all english sentences at the end of summary file
+            copy_audio_files_list.extend(
+                [sentence_audio] * 2,
+            )
 
-    # randomly compose sences all sentances without translation
-    random.shuffle(copy_audio_files_list)
-    audio_files_list.extend(copy_audio_files_list)
-    # ^--
+    if include_sentences_summary:
+        # randomly compose sences all sentances without translation
+        random.shuffle(copy_audio_files_list)
+        audio_files_list.extend(copy_audio_files_list)
 
     # Create a concatenation file for ffmpeg
     create_concat_file(audio_files_list, concat_list)
@@ -308,4 +309,5 @@ if __name__ == "__main__":
         phrases=phrases,
         output_filename="output_audio.mp3",
         spell_words=False,
+        include_sentences_summary=False,
     )
