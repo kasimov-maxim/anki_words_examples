@@ -86,6 +86,7 @@ def generate_audio(
     phrases: Sequence[tuple[str, str]],
     output_filename: str,
     spell_words: bool,
+    word_repetition_count: int,
     include_sentences_summary: bool,
 ) -> None:
     """
@@ -152,11 +153,9 @@ def generate_audio(
                     ),
                 )
             audio_files_list.extend(
-                (
-                    # repeat english word twice
-                    en_word_audio,
-                    en_word_audio,
-                ),
+                # repeat english word
+                [en_word_audio]
+                * word_repetition_count,
             )
 
         audio_files_list.extend(
@@ -309,5 +308,6 @@ if __name__ == "__main__":
         phrases=phrases,
         output_filename="output_audio.mp3",
         spell_words=False,
+        word_repetition_count=3,
         include_sentences_summary=False,
     )
