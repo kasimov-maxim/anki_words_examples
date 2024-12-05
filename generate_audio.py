@@ -84,6 +84,7 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
+    shuffle_phrases: bool,
     output_filename: str,
     include_pause_after_native: bool,
     spell_words: bool,
@@ -118,6 +119,9 @@ def generate_audio(
 
     silence_4 = os.path.join(TEMP_DIR, "silence_4.mp3")
     generate_silence(4, silence_4)
+
+    if shuffle_phrases:
+        random.shuffle(phrases)
 
     # Save each phrase as a separate audio file
     for words, words_translate, sentence, sentence_translate in phrases:
@@ -312,6 +316,7 @@ if __name__ == "__main__":
 
     generate_audio(
         phrases=phrases,
+        shuffle_phrases=True,
         output_filename="output_audio.mp3",
         include_pause_after_native=False,
         spell_words=False,
