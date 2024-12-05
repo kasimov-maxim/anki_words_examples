@@ -85,6 +85,7 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
     output_filename: str,
+    include_pause_after_native: bool,
     spell_words: bool,
     word_repetition_count: int,
     include_sentences_summary: bool,
@@ -131,16 +132,21 @@ def generate_audio(
                 lang="en",
                 slow=True,
             )
-            audio_files_list.extend(
-                (
-                    # ukraine word + pause
-                    make_audio_file(
-                        text=uk_word,
-                        lang="uk",
-                    ),
-                    silence_2,
+
+            # add native word
+            audio_files_list.append(
+                make_audio_file(
+                    text=uk_word,
+                    lang="uk",
                 ),
             )
+
+            # add pause after native
+            if include_pause_after_native:
+                audio_files_list.append(
+                    silence_2,
+                )
+
             if spell_words:
                 audio_files_list.extend(
                     (
@@ -307,6 +313,7 @@ if __name__ == "__main__":
     generate_audio(
         phrases=phrases,
         output_filename="output_audio.mp3",
+        include_pause_after_native=False,
         spell_words=False,
         word_repetition_count=3,
         include_sentences_summary=False,
