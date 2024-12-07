@@ -82,6 +82,13 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
             os.rmdir(directory)
 
 
+def make_words_list(words_string: str):
+    return map(
+        lambda x: x.strip().strip("."),
+        words_string.strip().split(","),
+    )
+
+
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
     shuffle_phrases: bool,
@@ -105,14 +112,6 @@ def generate_audio(
     :param output_filename: The name of the output audio file.
     :param native_first: Determines the order of native and foreign words.
     """
-
-    def make_words_list(words_string: str):
-        return map(
-            lambda x: x.strip().strip("."),
-            words_string.strip().split(","),
-        )
-
-    # ^--
 
     concat_list = "concat_list.txt"
 
@@ -314,6 +313,38 @@ def lookup_words(phrases_words, words_list) -> tuple[set, set]:
     return not_found, found
 
 
+def find_exercizes_with_word(
+    lookup_word: str,
+    phrases: Sequence[tuple[str, str]],
+):
+    for words, words_translate, sentence, sentence_translate in phrases:
+        words_list = make_words_list(words)
+        if lookup_word in words_list:
+            print("(")
+            for i in (words, words_translate, sentence, sentence_translate):
+                print("\t", i)
+            print(")")
+
+
+def count_words(phrases: Sequence[tuple[str, str]], print_list: bool = True):
+    from collections import defaultdict
+
+    counter = defaultdict(int)
+    for words, _, _, _ in phrases:
+        words_list = make_words_list(words)
+        for word in words_list:
+            counter[word] += 1
+
+    counter_list = list(counter.items())
+    counter_list_s = sorted(counter_list, key=lambda x: x[1])
+
+    for k, v in counter_list_s:
+        if print_list:
+            print(k, "\t\t->\t", v)
+
+    return k  # the most frequent
+
+
 if __name__ == "__main__":
 
     from learning_material_2 import phrases
@@ -340,6 +371,10 @@ if __name__ == "__main__":
     #     "459_words_without_1.txt",
     #     _459_words.difference(found_words),
     # )
+
+    frequent_word = count_words(phrases=phrases, print_list=True)
+    # print(f"The most frequent word: {frequent_word}")
+    find_exercizes_with_word(frequent_word, phrases=phrases)
 
     # english -> pause -> ukraine
     generate_audio(
