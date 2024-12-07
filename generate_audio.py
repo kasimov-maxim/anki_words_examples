@@ -7,6 +7,8 @@ from typing import Sequence
 from gtts import gTTS
 
 TEMP_DIR = "temp_audio"
+OUTPUT_DIR = "audio"
+CONCAT_LIST = "concat_list.txt"
 
 
 def get_text_hash(text: str) -> str:
@@ -63,11 +65,11 @@ def make_audio_file(
     return output_path
 
 
-def create_concat_file(input_files: Sequence[str], concat_file: str) -> None:
+def create_concat_file(input_files: Sequence[str]) -> None:
     """
     Creates a file listing input audio files for concatenation using ffmpeg.
     """
-    with open(concat_file, "w", encoding="utf-8") as f:
+    with open(CONCAT_LIST, "w", encoding="utf-8") as f:
         for file in input_files:
             f.write(f"file '{file}'\n")
 
@@ -113,19 +115,14 @@ def generate_audio(
     :param native_first: Determines the order of native and foreign words.
     """
 
-    concat_list = "concat_list.txt"
-
     audio_files_list = []
     copy_audio_files_list = []
 
     # Create a temporary directory for storing individual audio files
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    silence_2 = os.path.join(TEMP_DIR, "silence_2.mp3")
-    generate_silence(2, silence_2)
-
-    silence_4 = os.path.join(TEMP_DIR, "silence_4.mp3")
-    generate_silence(4, silence_4)
+    silence_2 = generate_silence(2, "silence_2.mp3")
+    silence_4 = generate_silence(4, "silence_4.mp3")
 
     if shuffle_phrases:
         random.shuffle(phrases)
@@ -225,7 +222,46 @@ def generate_audio(
         audio_files_list.extend(copy_audio_files_list)
 
     # Create a concatenation file for ffmpeg
-    create_concat_file(audio_files_list, concat_list)
+    create_concat_file(audio_files_list)
+    combine_audio(output_filename)
+
+    # Clean up temporary files and directories
+    # clean_up(
+    #     audio_files_list + [concat_list, silence_2, silence_4],
+    #     directories=[TEMP_DIR],
+    # )
+
+
+def combine_audio(output_filename: str) -> None:
+    """
+    Combines multiple audio files listed in a concatenation file into
+        a single output file.
+
+    This function uses FFmpeg to merge audio files listed in
+        a text file (`CONCAT_LIST`) and saves the resulting combined audio
+        in the specified output directory (`OUTPUT_DIR`) with
+        the given `output_filename`.
+
+    Parameters:
+        output_filename (str): The name of the output audio file to be created.
+
+    Raises:
+        subprocess.CalledProcessError: If the FFmpeg command fails
+        during execution.
+
+    Notes:
+        - The `CONCAT_LIST` file should contain the paths of the audio files
+          to be combined, listed line by line in the following format:
+              file '/path/to/audio1.mp3'
+              file '/path/to/audio2.mp3'
+        - The `OUTPUT_DIR` constant should define the directory where
+          the output file will be saved.
+        - Ensure FFmpeg is installed and accessible from the system's PATH.
+    """
+
+    # Prepare output dir
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    output_path = os.path.join(OUTPUT_DIR, output_filename)
 
     # Combine individual audio files into a single file
     subprocess.run(
@@ -236,30 +272,29 @@ def generate_audio(
             "-safe",
             "0",
             "-i",
-            concat_list,
+            CONCAT_LIST,
             "-c",
             "copy",
-            output_filename,
+            output_path,
         ],
         check=True,
     )
 
-    # Clean up temporary files and directories
-    # clean_up(
-    #     audio_files_list + [concat_list, silence_2, silence_4],
-    #     directories=[TEMP_DIR],
-    # )
 
-
-def generate_silence(duration: float, output_path: str) -> None:
+def generate_silence(duration: float, output_filename: str) -> str:
     """
     Generates a silence audio file of the given duration using ffmpeg.
 
     :param duration: Duration of the silence in seconds.
-    :param output_path: Path to save the silence audio file.
+    :output_filename (str): The name of the output audio file to be created.
+
+    Returns:
+    :output_path: Path to save the silence audio file.
     """
+    output_path = os.path.join(TEMP_DIR, output_filename)
+
     if os.path.exists(output_path):
-        return
+        return output_path
 
     subprocess.run(
         [
@@ -276,6 +311,8 @@ def generate_silence(duration: float, output_path: str) -> None:
         ],
         check=True,
     )
+
+    return output_path
 
 
 def get_phrases_words(phrases):
