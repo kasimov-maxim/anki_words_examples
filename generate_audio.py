@@ -2,6 +2,7 @@ import hashlib
 import os
 import random
 import subprocess
+from datetime import date
 from typing import Sequence
 
 from gtts import gTTS
@@ -98,7 +99,7 @@ def generate_audio(
     pause_after_first: bool,
     spell_foreign: bool,
     include_sentences_summary: bool,
-    output_filename: str,
+    output_filename: str = None,
     foreign_repetition_count: int = 2,
 ) -> None:
     """
@@ -114,6 +115,32 @@ def generate_audio(
     :param output_filename: The name of the output audio file.
     :param native_first: Determines the order of native and foreign words.
     """
+
+    def get_output_filename():
+        if output_filename:
+            return output_filename
+
+        options = []
+
+        if native_first:
+            options.append("uk_en")
+        else:
+            options.append("en_uk")
+
+        if spell_foreign:
+            options.append("spell")
+
+        if pause_after_first:
+            options.append("pause")
+
+        if include_sentences_summary:
+            options.append("summary")
+
+        options.append(date.today().strftime("%d-%m"))
+
+        return f"{'_'.join(options)}.mp3"
+
+    # ^--
 
     audio_files_list = []
     copy_audio_files_list = []
@@ -223,7 +250,7 @@ def generate_audio(
 
     # Create a concatenation file for ffmpeg
     create_concat_file(audio_files_list)
-    combine_audio(output_filename)
+    combine_audio(output_filename=get_output_filename())
 
     # Clean up temporary files and directories
     # clean_up(
@@ -421,7 +448,6 @@ if __name__ == "__main__":
         spell_foreign=False,
         pause_after_first=True,
         include_sentences_summary=False,
-        output_filename="english_ukrainian.mp3",
     )
 
     # ukraine -> pause -> english
@@ -433,5 +459,4 @@ if __name__ == "__main__":
         spell_foreign=True,
         foreign_repetition_count=2,
         include_sentences_summary=False,
-        output_filename="ukrainian_english.mp3",
     )
