@@ -117,28 +117,33 @@ def generate_audio(
     """
 
     def get_output_filename():
+        # Prepare output dir
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+
         if output_filename:
-            return output_filename
-
-        options = []
-
-        if native_first:
-            options.append("uk_en")
+            _output_filename = output_filename
         else:
-            options.append("en_uk")
+            options = []
 
-        if spell_foreign:
-            options.append("spell")
+            if native_first:
+                options.append("uk_en")
+            else:
+                options.append("en_uk")
 
-        if pause_after_first:
-            options.append("pause")
+            if spell_foreign:
+                options.append("spell")
 
-        if include_sentences_summary:
-            options.append("summary")
+            if pause_after_first:
+                options.append("pause")
 
-        options.append(date.today().strftime("%d-%m"))
+            if include_sentences_summary:
+                options.append("summary")
 
-        return f"{'_'.join(options)}.mp3"
+            options.append(date.today().strftime("%d-%m"))
+
+            _output_filename = f"{'_'.join(options)}"
+
+        return os.path.join(OUTPUT_DIR, _output_filename)
 
     # ^--
 
@@ -250,7 +255,10 @@ def generate_audio(
 
     # Create a concatenation file for ffmpeg
     create_concat_file(audio_files_list)
-    combine_audio(output_filename=get_output_filename())
+
+    filename = get_output_filename()
+    combine_audio(output_path=f"{filename}.mp3")
+    write_exercizes(phrases=phrases, output_path=f"{filename}.txt")
 
     # Clean up temporary files and directories
     # clean_up(
@@ -259,7 +267,19 @@ def generate_audio(
     # )
 
 
-def combine_audio(output_filename: str) -> None:
+def write_exercizes(
+    phrases: Sequence[tuple[str, str]],
+    output_path: str,
+) -> None:
+    with open(output_path, "w", encoding="utf-8") as f:
+        for words, words_translate, sentence, sentence_translate in phrases:
+            f.write("(\n")
+            for i in (words, words_translate, sentence, sentence_translate):
+                f.write(f"\t{i}\n")
+            f.write(")\n")
+
+
+def combine_audio(output_path: str) -> None:
     """
     Combines multiple audio files listed in a concatenation file into
         a single output file.
@@ -267,10 +287,10 @@ def combine_audio(output_filename: str) -> None:
     This function uses FFmpeg to merge audio files listed in
         a text file (`CONCAT_LIST`) and saves the resulting combined audio
         in the specified output directory (`OUTPUT_DIR`) with
-        the given `output_filename`.
+        the given `output_path`.
 
     Parameters:
-        output_filename (str): The name of the output audio file to be created.
+        output_path (str): The name of the output audio file to be created.
 
     Raises:
         subprocess.CalledProcessError: If the FFmpeg command fails
@@ -285,10 +305,6 @@ def combine_audio(output_filename: str) -> None:
           the output file will be saved.
         - Ensure FFmpeg is installed and accessible from the system's PATH.
     """
-
-    # Prepare output dir
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    output_path = os.path.join(OUTPUT_DIR, output_filename)
 
     # Combine individual audio files into a single file
     subprocess.run(
