@@ -161,11 +161,12 @@ def generate_audio(
 
     # Save each phrase as a separate audio file
     for words, words_translate, sentence, sentence_translate in phrases:
-        print(f"Generating audio for: {words}")
+        print(f"Generating audio for: {words}; {words_translate}")
 
         for uk_word, en_word in zip(
             make_words_list(words_translate),
             make_words_list(words),
+            strict=True,
         ):
             en_word_audio = make_audio_file(
                 text=en_word,
