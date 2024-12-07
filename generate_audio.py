@@ -184,7 +184,7 @@ def generate_audio(
                     )
 
                 if pause_after_first:
-                    audio_files_list.append(silence_2)
+                    audio_files_list.append(silence_4)
 
                 audio_files_list.append(ua_word_audio)
             # ^--
