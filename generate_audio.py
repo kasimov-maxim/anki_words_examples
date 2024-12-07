@@ -85,17 +85,25 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 def generate_audio(
     phrases: Sequence[tuple[str, str]],
     shuffle_phrases: bool,
-    include_pause_after_native: bool,
-    spell_words: bool,
-    word_repetition_count: int,
+    native_first: bool,
+    pause_after_first: bool,
+    spell_foreign: bool,
     include_sentences_summary: bool,
     output_filename: str,
+    foreign_repetition_count: int = 2,
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
 
     :param phrases: A sequence of phrases to be converted to audio.
+    :param shuffle_phrases: Shuffle the order of phrases.
+    :param pause_after_first: Make a pause after learning word pronounced.
+    :param spell_words: Whether to spell foreign words letter by letter.
+    :param word_repetition_count: Number of repetitions for foreign words.
+    :param include_sentences_summary: Add a summary of all sentences
+        at the end.
     :param output_filename: The name of the output audio file.
+    :param native_first: Determines the order of native and foreign words.
     """
 
     def make_words_list(words_string: str):
@@ -137,37 +145,53 @@ def generate_audio(
                 slow=True,
             )
 
-            # add native word
-            audio_files_list.append(
-                make_audio_file(
-                    text=uk_word,
-                    lang="uk",
-                ),
+            ua_word_audio = make_audio_file(
+                text=uk_word,
+                lang="uk",
             )
 
-            # add pause after native
-            if include_pause_after_native:
-                audio_files_list.append(
-                    silence_2,
+            # Add words exersize
+            if native_first:
+                audio_files_list.append(ua_word_audio)
+
+                if pause_after_first:
+                    audio_files_list.append(silence_2)
+
+                if spell_foreign:
+                    audio_files_list.extend(
+                        (
+                            # english word + repeat the word by letters
+                            en_word_audio,
+                            make_audio_file(
+                                text=" ".join(en_word),
+                                lang="en",
+                            ),
+                        ),
+                    )
+                audio_files_list.extend(
+                    # repeat english word
+                    [en_word_audio]
+                    * foreign_repetition_count,
                 )
 
-            if spell_words:
-                audio_files_list.extend(
-                    (
-                        # english word + repeat the word by letters
-                        en_word_audio,
+            else:
+                audio_files_list.append(en_word_audio)
+                if spell_foreign:
+                    audio_files_list.append(
                         make_audio_file(
                             text=" ".join(en_word),
                             lang="en",
                         ),
-                    ),
-                )
-            audio_files_list.extend(
-                # repeat english word
-                [en_word_audio]
-                * word_repetition_count,
-            )
+                    )
 
+                if pause_after_first:
+                    audio_files_list.append(silence_2)
+
+                audio_files_list.append(ua_word_audio)
+            # ^--
+
+        # Add sentence exersize:
+        # ukrainian -> pause -> (english -> pause) * 2
         audio_files_list.extend(
             (
                 make_audio_file(
@@ -186,12 +210,15 @@ def generate_audio(
         audio_files_list.extend(
             [sentence_audio, silence_4] * 2,
         )
+        # ^--
 
+        # Read all foreign sentences withous pauses
         if include_sentences_summary:
             # repeat all english sentences at the end of summary file
             copy_audio_files_list.extend(
                 [sentence_audio] * 2,
             )
+        # ^--
 
     if include_sentences_summary:
         # randomly compose sences all sentances without translation
@@ -314,12 +341,25 @@ if __name__ == "__main__":
     #     _459_words.difference(found_words),
     # )
 
+    # english -> pause -> ukraine
     generate_audio(
         phrases=phrases,
         shuffle_phrases=True,
-        include_pause_after_native=False,
-        spell_words=False,
-        word_repetition_count=3,
+        native_first=False,
+        spell_foreign=False,
+        pause_after_first=True,
         include_sentences_summary=False,
-        output_filename="output_audio.mp3",
+        output_filename="english_ukrainian.mp3",
+    )
+
+    # ukraine -> pause -> english
+    generate_audio(
+        phrases=phrases,
+        shuffle_phrases=True,
+        native_first=True,
+        pause_after_first=True,
+        spell_foreign=True,
+        foreign_repetition_count=2,
+        include_sentences_summary=False,
+        output_filename="ukrainian_english.mp3",
     )
