@@ -88,7 +88,7 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 def make_words_list(words_string: str):
     return map(
         lambda x: x.strip().strip("."),
-        words_string.strip().split(","),
+        words_string.strip().replace(".", ",").split(","),
     )
 
 
@@ -145,6 +145,13 @@ def generate_audio(
 
         return os.path.join(OUTPUT_DIR, _output_filename)
 
+    def spell(text) -> str | None:
+        # do not spell words with the "-" sign
+        if "-" in text:
+            return None
+
+        return " ".join(text)
+
     # ^--
 
     audio_files_list = []
@@ -155,13 +162,16 @@ def generate_audio(
 
     silence_2 = generate_silence(2, "silence_2.mp3")
     silence_4 = generate_silence(4, "silence_4.mp3")
+    silence_6 = generate_silence(6, "silence_6.mp3")
 
     if shuffle_phrases:
         random.shuffle(phrases)
 
     # Save each phrase as a separate audio file
     for words, words_translate, sentence, sentence_translate in phrases:
-        print(f"Generating audio for: {words}; {words_translate}")
+        print(
+            f"!!!!!!!!!!!!!! Generating audio for: {words}; {words_translate}",
+        )
 
         for uk_word, en_word in zip(
             make_words_list(words_translate),
@@ -171,7 +181,7 @@ def generate_audio(
             en_word_audio = make_audio_file(
                 text=en_word,
                 lang="en",
-                slow=True,
+                # slow=True,
             )
 
             ua_word_audio = make_audio_file(
@@ -187,16 +197,18 @@ def generate_audio(
                     audio_files_list.append(silence_2)
 
                 if spell_foreign:
-                    audio_files_list.extend(
-                        (
-                            # english word + repeat the word by letters
-                            en_word_audio,
-                            make_audio_file(
-                                text=" ".join(en_word),
-                                lang="en",
+                    spelled = spell(en_word)
+                    if spelled:
+                        audio_files_list.extend(
+                            (
+                                # english word + repeat the word by letters
+                                en_word_audio,
+                                make_audio_file(
+                                    text=spelled,
+                                    lang="en",
+                                ),
                             ),
-                        ),
-                    )
+                        )
                 audio_files_list.extend(
                     # repeat english word
                     [en_word_audio]
@@ -227,7 +239,7 @@ def generate_audio(
                     text=sentence_translate,
                     lang="uk",
                 ),
-                silence_4,
+                silence_6,
             ),
         )
 
@@ -237,7 +249,13 @@ def generate_audio(
             slow=True,
         )
         audio_files_list.extend(
-            [sentence_audio, silence_4] * 2,
+            # [sentence_audio, silence_4] * 2,
+            [
+                sentence_audio,
+                silence_4,
+                sentence_audio,
+                silence_2,
+            ],
         )
         # ^--
 
@@ -259,25 +277,14 @@ def generate_audio(
 
     filename = get_output_filename()
     combine_audio(output_path=f"{filename}.mp3")
-    write_exercizes(phrases=phrases, output_path=f"{filename}.txt")
+    with open(f"{filename}.txt", "w", encoding="utf-8") as f:
+        print_exercizes(phrases=phrases, output_file=f)
 
     # Clean up temporary files and directories
     # clean_up(
     #     audio_files_list + [concat_list, silence_2, silence_4],
     #     directories=[TEMP_DIR],
     # )
-
-
-def write_exercizes(
-    phrases: Sequence[tuple[str, str]],
-    output_path: str,
-) -> None:
-    with open(output_path, "w", encoding="utf-8") as f:
-        for words, words_translate, sentence, sentence_translate in phrases:
-            f.write("(\n")
-            for i in (words, words_translate, sentence, sentence_translate):
-                f.write(f"\t{i}\n")
-            f.write(")\n")
 
 
 def combine_audio(output_path: str) -> None:
@@ -359,103 +366,47 @@ def generate_silence(duration: float, output_filename: str) -> str:
     return output_path
 
 
-def get_phrases_words(phrases):
-    res = set()
-    for phrase in phrases:
-        words, _, _, _ = phrase
-
-        for word in map(lambda x: x.strip(), words.strip(".").split(",")):
-            res.add(word)
-
-    return res
-
-
-def get_words_list(filename: str) -> set:
-    with open(filename, encoding="utf-8") as f:
-        return (
-            word for word in map(lambda x: x.strip(), f.readlines()) if word
-        )
-
-
-def store_words_list(filename: str, words: set):
-    with open(filename, "w", encoding="utf-8") as f:
-        for w in words:
-            f.write(f"{w}\n")
-
-
-def lookup_words(phrases_words, words_list) -> tuple[set, set]:
-    not_found, found = set(), set()
-    for word in phrases_words:
-        if word not in words_list:
-            not_found.add(word)
-        else:
-            found.add(word)
-
-    return not_found, found
-
-
-def find_exercizes_with_word(
-    lookup_word: str,
+def print_exercizes(
     phrases: Sequence[tuple[str, str]],
+    lookup_word: str = None,
+    output_file=None,
+    foreign_only: bool = False,
+    dictionary: set = None,
 ):
     for words, words_translate, sentence, sentence_translate in phrases:
         words_list = make_words_list(words)
-        if lookup_word in words_list:
-            print("(")
-            for i in (words, words_translate, sentence, sentence_translate):
-                print("\t", i)
-            print(")")
+        if lookup_word and lookup_word not in words_list:
+            continue
 
+        if dictionary:
+            marked_words_list = []
+            for word in words_list:
+                if word in dictionary:
+                    marked_word = f"*{word}"
+                else:
+                    marked_word = word
+                marked_words_list.append(marked_word)
+            words = ", ".join(marked_words_list)
 
-def count_words(phrases: Sequence[tuple[str, str]], print_list: bool = True):
-    from collections import defaultdict
+        print("(", file=output_file)
+        if foreign_only:
+            what_to_print = (words, sentence)
+        else:
+            what_to_print = (
+                words,
+                words_translate,
+                sentence,
+                sentence_translate,
+            )
 
-    counter = defaultdict(int)
-    for words, _, _, _ in phrases:
-        words_list = make_words_list(words)
-        for word in words_list:
-            counter[word] += 1
-
-    counter_list = list(counter.items())
-    counter_list_s = sorted(counter_list, key=lambda x: x[1])
-
-    for k, v in counter_list_s:
-        if print_list:
-            print(k, "\t\t->\t", v)
-
-    return k  # the most frequent
+        for i in what_to_print:
+            print("\t", i, file=output_file)
+        print(")", file=output_file)
 
 
 if __name__ == "__main__":
 
-    from learning_material_2 import phrases
-
-    phrases_words = get_phrases_words(phrases=phrases)
-    print(f"Learning of {len(phrases_words)} words")
-    print(phrases_words)
-
-    print("\n")
-
-    _459_words = set(get_words_list("459_words.txt"))
-
-    not_found_words, found_words = lookup_words(
-        phrases_words,
-        _459_words,
-    )
-    print(f"Not found words count: {len(not_found_words)} words")
-    print(not_found_words)
-
-    print(f"Found words count: {len(found_words)} words")
-    print(found_words)
-
-    # store_words_list(
-    #     "459_words_without_1.txt",
-    #     _459_words.difference(found_words),
-    # )
-
-    frequent_word = count_words(phrases=phrases, print_list=True)
-    # print(f"The most frequent word: {frequent_word}")
-    find_exercizes_with_word(frequent_word, phrases=phrases)
+    from learning_material_3_1 import phrases
 
     # english -> pause -> ukraine
     generate_audio(
@@ -468,6 +419,17 @@ if __name__ == "__main__":
     )
 
     # ukraine -> pause -> english
+    # without spell
+    generate_audio(
+        phrases=phrases,
+        shuffle_phrases=True,
+        native_first=True,
+        pause_after_first=True,
+        spell_foreign=False,
+        foreign_repetition_count=2,
+        include_sentences_summary=False,
+    )
+    # with spell
     generate_audio(
         phrases=phrases,
         shuffle_phrases=True,
