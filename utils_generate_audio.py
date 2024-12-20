@@ -145,13 +145,6 @@ def generate_audio(
 
         return os.path.join(OUTPUT_DIR, _output_filename)
 
-    def spell(text) -> str | None:
-        # do not spell words with the "-" sign
-        if "-" in text:
-            return None
-
-        return " ".join(text)
-
     # ^--
 
     audio_files_list = []
@@ -168,27 +161,23 @@ def generate_audio(
         random.shuffle(phrases)
 
     # Save each phrase as a separate audio file
-    for words, words_translate, sentence, sentence_translate in phrases:
-        print(
-            f"!!!!!!!!!!!!!! Generating audio for: {words}; {words_translate}",
-        )
+    for phrase in phrases:
+        print(f"!!!!!!!!!!!!!! Generating audio for: {phrase}")
+        (
+            audio_words,
+            audio_words_translate,
+            audio_sentence,
+            audio_sentence_translate,
+            audio_spelled_words,
+        ) = make_phrase_audio(phrase, spell_foreign=spell_foreign)
 
-        for uk_word, en_word in zip(
-            make_words_list(words_translate),
-            make_words_list(words),
+        # audio_spelled_words.reverse()
+        for ua_word_audio, en_word_audio, spelled in zip(
+            audio_words_translate,
+            audio_words,
+            audio_spelled_words,
             strict=True,
         ):
-            en_word_audio = make_audio_file(
-                text=en_word,
-                lang="en",
-                # slow=True,
-            )
-
-            ua_word_audio = make_audio_file(
-                text=uk_word,
-                lang="uk",
-            )
-
             # Add words exersize
             if native_first:
                 audio_files_list.append(ua_word_audio)
@@ -196,19 +185,14 @@ def generate_audio(
                 if pause_after_first:
                     audio_files_list.append(silence_2)
 
-                if spell_foreign:
-                    spelled = spell(en_word)
-                    if spelled:
-                        audio_files_list.extend(
-                            (
-                                # english word + repeat the word by letters
-                                en_word_audio,
-                                make_audio_file(
-                                    text=spelled,
-                                    lang="en",
-                                ),
-                            ),
-                        )
+                if spelled:
+                    audio_files_list.extend(
+                        (
+                            # english word + repeat the word by letters
+                            en_word_audio,
+                            spelled,
+                        ),
+                    )
                 audio_files_list.extend(
                     # repeat english word
                     [en_word_audio]
@@ -217,13 +201,8 @@ def generate_audio(
 
             else:
                 audio_files_list.append(en_word_audio)
-                if spell_foreign:
-                    audio_files_list.append(
-                        make_audio_file(
-                            text=" ".join(en_word),
-                            lang="en",
-                        ),
-                    )
+                if spelled:
+                    audio_files_list.append(spelled)
 
                 if pause_after_first:
                     audio_files_list.append(silence_4)
@@ -235,25 +214,17 @@ def generate_audio(
         # ukrainian -> pause -> (english -> pause) * 2
         audio_files_list.extend(
             (
-                make_audio_file(
-                    text=sentence_translate,
-                    lang="uk",
-                ),
+                audio_sentence_translate,
                 silence_6,
             ),
         )
 
-        sentence_audio = make_audio_file(
-            text=sentence,
-            lang="en",
-            slow=True,
-        )
         audio_files_list.extend(
             # [sentence_audio, silence_4] * 2,
             [
-                sentence_audio,
+                audio_sentence,
                 silence_4,
-                sentence_audio,
+                audio_sentence,
                 silence_2,
             ],
         )
@@ -263,7 +234,7 @@ def generate_audio(
         if include_sentences_summary:
             # repeat all english sentences at the end of summary file
             copy_audio_files_list.extend(
-                [sentence_audio] * 2,
+                [audio_sentence] * 2,
             )
         # ^--
 
@@ -285,6 +256,77 @@ def generate_audio(
     #     audio_files_list + [concat_list, silence_2, silence_4],
     #     directories=[TEMP_DIR],
     # )
+
+
+def make_phrase_audio(
+    phrase: tuple[str, str],
+    spell_foreign: bool,
+) -> tuple[list[str], list[str], str, str, list[str]]:
+
+    def spell(text) -> str | None:
+        # do not spell words with the "-" sign
+        if "-" in text:
+            return None
+
+        return " ".join(text)
+
+    # ^--
+
+    words, words_translate, sentence, sentence_translate = phrase
+    audio_words: list[str] = []
+    audio_spelled_words: list[str] = []
+    audio_words_translate: list[str] = []
+    audio_sentence: str = make_audio_file(
+        text=sentence,
+        lang="en",
+        slow=True,
+    )
+
+    audio_sentence_translate: str = make_audio_file(
+        text=sentence_translate,
+        lang="uk",
+    )
+
+    for uk_word, en_word in zip(
+        make_words_list(words_translate),
+        make_words_list(words),
+        strict=True,
+    ):
+        en_word_audio = make_audio_file(
+            text=en_word,
+            lang="en",
+            # slow=True,
+        )
+
+        uk_word_audio = make_audio_file(
+            text=uk_word,
+            lang="uk",
+        )
+
+        audio_words.append(en_word_audio)
+        audio_words_translate.append(uk_word_audio)
+
+        if spell_foreign:
+            spelled = spell(en_word)
+            if spelled:
+                audio_spelled_words.append(
+                    make_audio_file(
+                        text=spelled,
+                        lang="en",
+                    ),
+                )
+            else:
+                audio_spelled_words.append(None)
+        else:
+            audio_spelled_words.append(None)
+
+    return (
+        audio_words,
+        audio_words_translate,
+        audio_sentence,
+        audio_sentence_translate,
+        audio_spelled_words,
+    )
 
 
 def combine_audio(output_path: str) -> None:
