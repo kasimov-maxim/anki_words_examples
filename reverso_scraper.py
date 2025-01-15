@@ -1,4 +1,6 @@
+from collections import defaultdict
 from enum import Enum
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -57,6 +59,131 @@ def get_language_code(language: Language) -> str:
     }
 
     return language_map.get(language, "unknown")
+
+
+def extract_translations(
+    html_content: str,
+    web_url_base: str = "",
+) -> dict[str, list[str]]:
+    """
+    Extracts translations and their corresponding parts of speech
+        from the provided HTML content.
+
+    :param html_content: The HTML content as a string.
+    :return: A list of dictionaries with keys
+        'translation', 'part_of_speech', and 'link'.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # translations = []
+    translations = defaultdict(list)
+
+    # Find all translation elements
+    for element in soup.select("div.translation, a.translation"):
+        # Extract the translation text
+        translation_text = element.get("data-term", "").strip()
+        if not translation_text:
+            continue
+
+        # Extract the part of speech
+        part_of_speech = element.get("data-pos", "").strip()
+
+        # Extract the link, if available
+        link = element.get("href", "").strip()
+        url = urljoin(web_url_base, link)
+
+        translations[part_of_speech].append((translation_text, url))
+
+    return translations
+
+
+def format_translations(translation_dict):
+    html_output = (
+        "<table width='100%' border='1' style='border-collapse: collapse;'>"
+    )
+    # html_output += "<tr><th>Type</th><th>Words</th></tr>"
+    for key, translations in translation_dict.items():
+        words = " ".join(
+            f"<a href='{link}' target='_blank'>{word}</a>; "
+            for word, link in translations
+        )
+        html_output += f"<tr><td>{key}</td><td>{words}</td></tr>"
+    html_output += "</table>"
+    return html_output
+
+
+def extract_ipa_pronunciation(html_content: str) -> dict[str:str]:
+    """
+    Extract the IPA pronunciation of a word from
+        the provided Reverso Context HTML page content.
+
+    :param html_content: The HTML content of the page as a string.
+    :return: The IPA pronunciation as a string, or None if not found.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Look for the IPA pronunciation element
+    ipa_elements = []
+    for ipa_element in soup.find_all("div", class_="ipa"):
+        if ipa_element:
+            ipa_elements.append(ipa_element.text.strip())
+
+    if len(ipa_elements) == 1:
+        return {"us": ipa_elements[0], "uk": ipa_elements[0]}
+    elif len(ipa_elements) >= 2:
+        return {"us": ipa_elements[0], "uk": ipa_elements[1]}
+    else:
+        return {}
+
+
+def extract_suggestions(
+    html_content: str,
+    web_url_base: str = "",
+) -> list[tuple[str, str]]:
+    """
+    Extracts all suggestions and their corresponding
+    links from the provided HTML content.
+
+    :param html_content: The HTML content as a string.
+    :return: A list of tuples where each tuple
+        contains a suggestion and its link.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    suggestions = []
+
+    # Extract suggestions from <a> tags with class 'text'
+    for suggestion in soup.select("div.suggestion a.text"):
+        text = suggestion.text.strip()
+        link = suggestion["href"].strip()
+        url = urljoin(web_url_base, link)
+        suggestions.append((text, url))
+
+    return suggestions
+
+
+def format_suggestions(suggestions):
+    """
+    Форматує список із фразами та посиланнями у HTML для Anki.
+
+    Args:
+        phrases (list of tuples): Список кортежів у форматі (фраза, посилання).
+
+    Returns:
+        str: HTML-розмітка.
+    """
+    # Використовуємо множину, щоб уникнути дублікатів
+    unique_phrases = set(suggestions)
+
+    # Генеруємо HTML-список
+    html_output = ""
+    for phrase, link in unique_phrases:
+        html_output += f'<a href="{link}" target="_blank">{phrase}</a>, '
+
+    # Видаляємо останню кому і пробіл
+    html_output = html_output.rstrip(", ")
+
+    return html_output
 
 
 def extract_translation_examples(contents: str) -> list[tuple[str, str]]:
@@ -407,6 +534,26 @@ if __name__ == "__main__":
         source_language=Language.ENGLISH,
         target_language=Language.UKRAINIAN,
     )
+
+    translations = extract_translations(
+        reverso_contents,
+        web_url_base="https://context.reverso.net/",
+    )
+    # print(f"Translations: {translations}")
+    # # html = format_translations(translations)
+    # # print(html)
+
+    ipa_pronunciations = extract_ipa_pronunciation(reverso_contents)
+    if ipa_pronunciations:
+        print(f"IPA Pronunciations: {ipa_pronunciations}")
+    else:
+        print("IPA Pronunciations not found.")
+
+    suggestions = extract_suggestions(
+        reverso_contents,
+        web_url_base="https://context.reverso.net/",
+    )
+    print(f"Suggestions: {suggestions}")
 
     # Process and print the results
     parsed_examples = extract_translation_examples(reverso_contents)
