@@ -1,7 +1,7 @@
 import time
 from typing import Any
 
-from anki_connect import send_anki_request
+from anki_connect import clean_word, get_field_value, send_anki_request
 from reverso_scraper import (
     Language,
     fetch_reverso_examples,
@@ -11,17 +11,6 @@ from reverso_scraper import (
 # Interval in seconds to wait between consecutive Anki note updates
 # to avoid server overload
 THROTTLING_INTERVAL: int = 3
-
-
-def get_field_value(note: dict[str, Any], field_name: str) -> str | None:
-    """
-    Retrieves the value of a specified field in a note.
-
-    :param note: A dictionary representing the Anki note.
-    :param field_name: The name of the field whose value to retrieve.
-    :return: The field value as a string if it exists, otherwise None.
-    """
-    return note["fields"].get(field_name, {}).get("value", None)
 
 
 def get_examples(
@@ -156,16 +145,6 @@ def update_anki_notes_with_examples(
         (default: 'Antonyms').
     :raises Exception: If an error occurs during fetching or updating.
     """
-
-    def clean_word(word: str) -> str:
-        """
-        Cleans the word by taking the last part if it contains a slash
-        and trimming any extra whitespace.
-
-        :param word: The word to clean.
-        :return: The cleaned word.
-        """
-        return word.split("/")[-1].strip() if "/" in word else word.strip()
 
     if lookup_word:
         lookup_word = lookup_word.split()[-1].strip()
