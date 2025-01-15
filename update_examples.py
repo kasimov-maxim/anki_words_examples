@@ -131,6 +131,7 @@ def update_anki_notes_with_examples(
     example_field: str = "Examples",
     synonym_field: str = "Synonyms",
     antonym_field: str = "Antonyms",
+    lookup_word: str = None,
 ) -> None:
     """
     Updates Anki notes in the specified deck
@@ -166,6 +167,9 @@ def update_anki_notes_with_examples(
         """
         return word.split("/")[-1].strip() if "/" in word else word.strip()
 
+    if lookup_word:
+        lookup_word = lookup_word.split()[-1].strip()
+
     # Find all notes in the specified deck
     notes_list: list[int] = send_anki_request(
         "findNotes",
@@ -187,6 +191,9 @@ def update_anki_notes_with_examples(
             )
             continue
         word = clean_word(word)
+
+        if lookup_word and lookup_word != word:
+            continue
 
         # Fetch examples, synonyms, and antonyms
         examples = get_examples(
@@ -224,8 +231,22 @@ def update_anki_notes_with_examples(
             print(f'The word "{word}" updated successfully.')
             time.sleep(THROTTLING_INTERVAL)
 
+        if lookup_word:
+            break
+
 
 if __name__ == "__main__":
+    import sys
+
+    # if len(sys.argv) > 1:
+    #     lookup_word = sys.argv[-1]
+    # else:
+    #     lookup_word = None
+
+    lookup_word = sys.argv[-1] if len(sys.argv) > 1 else None
+    if lookup_word:
+        print(f"Lookup word is {lookup_word}")
+
     update_anki_notes_with_examples(
         deck_id="459",
         source_language=Language.ENGLISH,
@@ -234,4 +255,5 @@ if __name__ == "__main__":
         example_field="examples",
         synonym_field="synonyms",
         antonym_field="antonyms",
+        # lookup_word="frighten",
     )
