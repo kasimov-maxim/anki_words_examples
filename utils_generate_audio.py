@@ -22,6 +22,7 @@ def get_text_hash(text: str) -> str:
 def make_audio_file(
     text: str,
     lang: str = "en",
+    tld: str = "com",
     slow: bool = False,
 ) -> None:
     """
@@ -38,7 +39,7 @@ def make_audio_file(
     tmp_output_path = f"{output_path}.gtts"
 
     # Generate TTS audio
-    tts = gTTS(text, lang=lang, slow=slow)
+    tts = gTTS(text, lang=lang, slow=slow, tld=tld)
     tts.save(tmp_output_path)
 
     try:
@@ -101,6 +102,8 @@ def generate_audio(
     include_sentences_summary: bool,
     output_filename: str = None,
     foreign_repetition_count: int = 2,
+    foreign_tld: str = "com",
+    native_tld: str = "com",
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
@@ -169,7 +172,12 @@ def generate_audio(
             audio_sentence,
             audio_sentence_translate,
             audio_spelled_words,
-        ) = make_phrase_audio(phrase, spell_foreign=spell_foreign)
+        ) = make_phrase_audio(
+            phrase,
+            spell_foreign=spell_foreign,
+            foreign_tld=foreign_tld,
+            native_tld=native_tld,
+        )
 
         # audio_spelled_words.reverse()
         for ua_word_audio, en_word_audio, spelled in zip(
@@ -261,6 +269,8 @@ def generate_audio(
 def make_phrase_audio(
     phrase: tuple[str, str],
     spell_foreign: bool,
+    foreign_tld: str = "com",
+    native_tld: str = "com",
 ) -> tuple[list[str], list[str], str, str, list[str]]:
 
     def spell(text) -> str | None:
@@ -280,11 +290,13 @@ def make_phrase_audio(
         text=sentence,
         lang="en",
         slow=True,
+        tld=foreign_tld,
     )
 
     audio_sentence_translate: str = make_audio_file(
         text=sentence_translate,
         lang="uk",
+        tld=native_tld,
     )
 
     for uk_word, en_word in zip(
@@ -296,11 +308,13 @@ def make_phrase_audio(
             text=en_word,
             lang="en",
             # slow=True,
+            tld=foreign_tld,
         )
 
         uk_word_audio = make_audio_file(
             text=uk_word,
             lang="uk",
+            tld=native_tld,
         )
 
         audio_words.append(en_word_audio)
@@ -313,6 +327,7 @@ def make_phrase_audio(
                     make_audio_file(
                         text=spelled,
                         lang="en",
+                        tld=foreign_tld,
                     ),
                 )
             else:
@@ -458,6 +473,7 @@ if __name__ == "__main__":
         spell_foreign=False,
         pause_after_first=True,
         include_sentences_summary=False,
+        foreign_tld="us",
     )
 
     # ukraine -> pause -> english
@@ -470,6 +486,7 @@ if __name__ == "__main__":
         spell_foreign=False,
         foreign_repetition_count=2,
         include_sentences_summary=False,
+        foreign_tld="us",
     )
     # with spell
     generate_audio(
@@ -480,4 +497,5 @@ if __name__ == "__main__":
         spell_foreign=True,
         foreign_repetition_count=2,
         include_sentences_summary=False,
+        foreign_tld="us",
     )
