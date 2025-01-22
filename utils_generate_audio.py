@@ -146,9 +146,9 @@ def generate_audio(
             options = []
 
             if native_first:
-                options.append("uk_en")
+                options.append(f"uk_en.{foreign_tld}")
             else:
-                options.append("en_uk")
+                options.append(f"en.{foreign_tld}_uk")
 
             if spell_foreign:
                 options.append("spell")
