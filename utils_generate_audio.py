@@ -173,9 +173,9 @@ def generate_audio(
     # Create a temporary directory for storing individual audio files
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    silence_2 = generate_silence(2, "silence_2.mp3")
-    silence_4 = generate_silence(4, "silence_4.mp3")
-    silence_6 = generate_silence(6, "silence_6.mp3")
+    silence_2 = generate_silence(2)
+    silence_4 = generate_silence(4)
+    pause_after_native_sentence = generate_silence(12)
 
     if shuffle_phrases:
         random.shuffle(phrases)
@@ -240,7 +240,7 @@ def generate_audio(
         audio_files_list.extend(
             (
                 audio_sentence_translate,
-                silence_6,
+                pause_after_native_sentence,
             ),
         )
 
@@ -406,7 +406,7 @@ def combine_audio(output_path: str) -> None:
     )
 
 
-def generate_silence(duration: float, output_filename: str) -> str:
+def generate_silence(duration: float) -> str:
     """
     Generates a silence audio file of the given duration using ffmpeg.
 
@@ -416,6 +416,7 @@ def generate_silence(duration: float, output_filename: str) -> str:
     Returns:
     :output_path: Path to save the silence audio file.
     """
+    output_filename = f"silence_{duration}.mp3"
     output_path = os.path.join(TEMP_DIR, output_filename)
 
     if os.path.exists(output_path):
