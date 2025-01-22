@@ -1,7 +1,9 @@
 import hashlib
 import os
 import random
+import re
 import subprocess
+import urllib.parse
 from datetime import date
 from typing import Sequence
 
@@ -19,6 +21,20 @@ def get_text_hash(text: str) -> str:
     return hashlib.md5(text.encode("utf-8")).hexdigest()
 
 
+def generate_filename(text, tld):
+
+    is_latin = bool(re.fullmatch(r"[a-zA-Z]+", text))
+
+    if " " in text:  # Якщо це речення, створити хеш
+        filename = f"__s_{get_text_hash(text)}__{tld}"
+    elif is_latin:  # Якщо це слово з латинськими символами
+        filename = f"{urllib.parse.quote(text.encode('utf-8'))}__{tld}"
+    else:
+        filename = f"__w_{get_text_hash(text)}__{tld}"
+
+    return filename
+
+
 def make_audio_file(
     text: str,
     lang: str = "en",
@@ -31,7 +47,8 @@ def make_audio_file(
     """
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    output_path = os.path.join(TEMP_DIR, f"{get_text_hash(text)}.mp3")
+    filename = generate_filename(text=text, tld=tld)
+    output_path = os.path.join(TEMP_DIR, f"{filename}.mp3")
     if os.path.exists(output_path):
         print(f'Audio file already exists for text: "{text}"')
         return output_path
