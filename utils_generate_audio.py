@@ -447,6 +447,10 @@ def print_exercizes(
     output_file=None,
     foreign_only: bool = False,
     dictionary: set = None,
+    print_words: bool = True,
+    print_words_translate: bool = True,
+    print_sentence: bool = True,
+    print_sentence_translate: bool = True,
 ):
     for words, words_translate, sentence, sentence_translate in phrases:
         words_list = make_words_list(words)
@@ -464,15 +468,15 @@ def print_exercizes(
             words = ", ".join(marked_words_list)
 
         print("(", file=output_file)
-        if foreign_only:
-            what_to_print = (words, sentence)
-        else:
-            what_to_print = (
-                words,
-                words_translate,
-                sentence,
-                sentence_translate,
-            )
+        what_to_print = []
+        if print_words:
+            what_to_print.append(words)
+        if print_words_translate:
+            what_to_print.append(words_translate)
+        if print_sentence:
+            what_to_print.append(sentence)
+        if print_sentence_translate:
+            what_to_print.append(sentence_translate)
 
         for i in what_to_print:
             print("\t", i, file=output_file)
