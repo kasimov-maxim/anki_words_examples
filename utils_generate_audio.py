@@ -121,6 +121,8 @@ def generate_audio(
     foreign_repetition_count: int = 2,
     foreign_tld: str = "com",
     native_tld: str = "com",
+    shoud_print_exercizes: bool = False,
+    initial_silince_duration: int = 30,
 ) -> None:
     """
     Generates a single audio file by combining multiple phrases.
@@ -172,6 +174,10 @@ def generate_audio(
 
     # Create a temporary directory for storing individual audio files
     os.makedirs(TEMP_DIR, exist_ok=True)
+
+    if initial_silince_duration:
+        initial_silince = generate_silence(initial_silince_duration)
+        audio_files_list.append(initial_silince)
 
     silence_2 = generate_silence(2)
     silence_4 = generate_silence(4)
@@ -273,8 +279,10 @@ def generate_audio(
 
     filename = get_output_filename()
     combine_audio(output_path=f"{filename}.mp3")
-    with open(f"{filename}.txt", "w", encoding="utf-8") as f:
-        print_exercizes(phrases=phrases, output_file=f)
+
+    if shoud_print_exercizes:
+        with open(f"{filename}.txt", "w", encoding="utf-8") as f:
+            print_exercizes(phrases=phrases, output_file=f)
 
     # Clean up temporary files and directories
     # clean_up(
