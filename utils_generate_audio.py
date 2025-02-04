@@ -73,6 +73,7 @@ def make_audio_file(
                 "-q:a",
                 "9",
                 output_path,
+                "-y",
             ],
             check=True,
         )
@@ -409,6 +410,7 @@ def combine_audio(output_path: str) -> None:
             "-c",
             "copy",
             output_path,
+            "-y",
         ],
         check=True,
     )
@@ -442,6 +444,7 @@ def generate_silence(duration: float) -> str:
             "-q:a",
             "9",
             output_path,
+            "-y",
         ],
         check=True,
     )
