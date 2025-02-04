@@ -458,7 +458,6 @@ def print_exercizes(
     phrases: Sequence[tuple[str, str]],
     lookup_word: str = None,
     output_file=None,
-    foreign_only: bool = False,
     dictionary: set = None,
     print_words: bool = True,
     print_words_translate: bool = True,
