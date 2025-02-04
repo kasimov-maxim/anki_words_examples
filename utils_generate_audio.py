@@ -106,7 +106,7 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
 
 def make_words_list(words_string: str):
     return map(
-        lambda x: x.strip().strip("."),
+        lambda x: x.strip().strip(".").lower(),
         words_string.strip().replace(".", ",").split(","),
     )
 
