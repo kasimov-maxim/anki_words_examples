@@ -4,6 +4,7 @@ import random
 import re
 import subprocess
 import urllib.parse
+from collections import defaultdict
 from datetime import date
 from typing import Sequence
 
@@ -495,6 +496,88 @@ def print_exercizes(
         print(")", file=output_file)
 
 
+def get_unique_words_as_phrases(phrases):
+    """
+    Processes a list of phrase pairs and extracts unique word associations
+    between a foreign language (e.g., English) and a native language
+    (e.g., Ukrainian).
+    The function builds a mapping between these words and returns
+    a structured list of unique word associations.
+
+    Args:
+        phrases (list of tuples): A list where each tuple contains:
+            - words (str): The phrase in the native language.
+            - words_translate (str): The translated phrase
+                in the foreign language.
+            - Unused value (any): Placeholder, ignored in processing.
+            - Unused value (any): Placeholder, ignored in processing.
+
+    Returns:
+        list of tuples: A list of word associations, where each tuple contains:
+            - A string of foreign words joined by " / ".
+            - A string of native words joined by " / ".
+            - The string "u" (constant placeholder).
+            - The string "и" (constant placeholder).
+
+    Processing Steps:
+        1. Parses words and their translations into separate word mappings.
+        2. Handles words containing "/" or "-" by splitting them and storing
+           each variant separately.
+        3. Constructs two dictionaries:
+            - `foreign_native__words_dict`: Maps foreign words to native words.
+            - `native_foreign__words_dict`: Maps native words to foreign words.
+        4. Merges both mappings to form bidirectional word associations.
+        5. Formats the result into a list of tuples with joined word sets.
+    """
+
+    foreign_native__words_dict = defaultdict(set)
+    native_foreign__words_dict = defaultdict(set)
+
+    for phrase in phrases:
+        words, words_translate, _, _ = phrase
+
+        for uk_word, en_word in zip(
+            make_words_list(words_translate),
+            make_words_list(words),
+            strict=True,
+        ):
+            # foreign_native__words_dict[en_word].add(uk_word)
+            for i in map(lambda x: x.strip(), re.split("[/-]", uk_word)):
+                foreign_native__words_dict[en_word].add(i)
+            # ^--
+
+            # native_foreign__words_dict[uk_word].add(en_word)
+            for i in map(lambda x: x.strip(), re.split("[/-]", en_word)):
+                for j in map(lambda x: x.strip(), re.split("[/-]", uk_word)):
+                    native_foreign__words_dict[j].add(i)
+            # ^--
+
+    # combine both of the dicts above
+    combined_list = []
+    for _, uk_words_set in foreign_native__words_dict.items():
+        # en_words_set = {"тест", }
+        en_words_set = set()
+
+        for uk_word in uk_words_set:
+            for i in native_foreign__words_dict[uk_word]:
+                en_words_set.add(i)
+
+        combined_list.append(
+            (tuple(en_words_set), tuple(uk_words_set)),
+        )
+
+    # pprint.pprint(combined_list)
+    return [
+        (
+            " / ".join(en_words_tuple),
+            " / ".join(uk_words_tuple),
+            "u",
+            "и",
+        )
+        for en_words_tuple, uk_words_tuple in dict(combined_list).items()
+    ]
+
+
 if __name__ == "__main__":
 
     from learning_material_3_1 import phrases
@@ -513,12 +596,13 @@ if __name__ == "__main__":
     # ukraine -> pause -> english
     # without spell
     generate_audio(
-        phrases=phrases,
+        phrases=get_unique_words_as_phrases(phrases),
         shuffle_phrases=True,
         native_first=True,
         pause_after_first=True,
         spell_foreign=False,
         foreign_repetition_count=2,
+        include_sentences=False,
         include_sentences_summary=False,
         foreign_tld="us",
     )
