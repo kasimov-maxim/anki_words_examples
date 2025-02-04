@@ -118,6 +118,7 @@ def generate_audio(
     pause_after_first: bool,
     spell_foreign: bool,
     include_sentences_summary: bool,
+    include_sentences: bool = True,
     output_filename: str = None,
     foreign_repetition_count: int = 2,
     foreign_tld: str = "com",
@@ -243,23 +244,24 @@ def generate_audio(
             # ^--
 
         # Add sentence exersize:
-        # ukrainian -> pause -> (english -> pause) * 2
-        audio_files_list.extend(
-            (
-                audio_sentence_translate,
-                pause_after_native_sentence,
-            ),
-        )
+        if include_sentences:
+            # ukrainian -> pause -> (english -> pause) * 2
+            audio_files_list.extend(
+                (
+                    audio_sentence_translate,
+                    pause_after_native_sentence,
+                ),
+            )
 
-        audio_files_list.extend(
-            # [sentence_audio, silence_4] * 2,
-            [
-                audio_sentence,
-                silence_4,
-                audio_sentence,
-                silence_2,
-            ],
-        )
+            audio_files_list.extend(
+                # [sentence_audio, silence_4] * 2,
+                [
+                    audio_sentence,
+                    silence_4,
+                    audio_sentence,
+                    silence_2,
+                ],
+            )
         # ^--
 
         # Read all foreign sentences withous pauses
