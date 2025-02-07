@@ -116,11 +116,15 @@ def generate_audio(
     phrases: Sequence[tuple[str, str]],
     shuffle_phrases: bool,
     native_first: bool,
-    pause_after_first: bool,
     spell_foreign: bool,
     include_sentences_summary: bool,
     include_sentences: bool = True,
     output_filename: str = None,
+    first_pause_duration_after_native_word: int = 2,
+    first_pause_duration_after_foreign_word: int = 4,
+    pause_duration_after_native_sentence: int = 12,
+    first_pause_duration_after_foreign_sentence: int = 2,
+    second_pause_duration_after_foreign_sentence: int = 4,
     foreign_repetition_count: int = 2,
     foreign_tld: str = "com",
     native_tld: str = "com",
@@ -158,7 +162,10 @@ def generate_audio(
             if spell_foreign:
                 options.append("spell")
 
-            if pause_after_first:
+            if (
+                first_pause_duration_after_native_word
+                or first_pause_duration_after_foreign_word
+            ):
                 options.append("pause")
 
             if include_sentences_summary:
@@ -182,9 +189,22 @@ def generate_audio(
         initial_silince = generate_silence(initial_silince_duration)
         audio_files_list.append(initial_silince)
 
-    silence_2 = generate_silence(2)
-    silence_4 = generate_silence(4)
-    pause_after_native_sentence = generate_silence(12)
+    first_pause_after_native_word = generate_silence(
+        first_pause_duration_after_native_word,
+    )
+    first_pause_after_foreign_word = generate_silence(
+        first_pause_duration_after_foreign_word,
+    )
+    pause_after_native_sentence = generate_silence(
+        pause_duration_after_native_sentence,
+    )
+
+    first_pause_after_foreign_sentence = generate_silence(
+        first_pause_duration_after_foreign_sentence,
+    )
+    second_pause_after_foreign_sentence = generate_silence(
+        second_pause_duration_after_foreign_sentence,
+    )
 
     if shuffle_phrases:
         random.shuffle(phrases)
@@ -216,8 +236,8 @@ def generate_audio(
             if native_first:
                 audio_files_list.append(ua_word_audio)
 
-                if pause_after_first:
-                    audio_files_list.append(silence_2)
+                if first_pause_duration_after_native_word:
+                    audio_files_list.append(first_pause_after_native_word)
 
                 if spelled:
                     audio_files_list.extend(
@@ -238,8 +258,8 @@ def generate_audio(
                 if spelled:
                     audio_files_list.append(spelled)
 
-                if pause_after_first:
-                    audio_files_list.append(silence_4)
+                if first_pause_duration_after_foreign_word:
+                    audio_files_list.append(first_pause_after_foreign_word)
 
                 audio_files_list.append(ua_word_audio)
             # ^--
@@ -258,9 +278,9 @@ def generate_audio(
                 # [sentence_audio, silence_4] * 2,
                 [
                     audio_sentence,
-                    silence_4,
+                    first_pause_after_foreign_sentence,
                     audio_sentence,
-                    silence_2,
+                    second_pause_after_foreign_sentence,
                 ],
             )
         # ^--
