@@ -87,7 +87,7 @@ def get_words_list_from_csv(
     with open(filename, encoding=encoding) as file:
         reader = csv.reader(file, delimiter=delimeter)
         return set(
-            row[1].strip("1234567890 ")
+            row[column_number].strip("1234567890 ")
             for row in reader
             if len(row) >= column_number
         )
