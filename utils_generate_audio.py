@@ -10,6 +10,8 @@ from typing import Sequence
 
 from gtts import gTTS
 
+from utils import split_words_into_list
+
 TEMP_DIR = "temp_audio"
 OUTPUT_DIR = "audio"
 CONCAT_LIST = "concat_list.txt"
@@ -103,13 +105,6 @@ def clean_up(files: Sequence[str], directories: Sequence[str] = ()) -> None:
     for directory in directories:
         if os.path.exists(directory):
             os.rmdir(directory)
-
-
-def make_words_list(words_string: str):
-    return map(
-        lambda x: x.strip().strip(".").lower(),
-        words_string.strip().replace(".", ",").split(","),
-    )
 
 
 def generate_audio(
@@ -349,8 +344,8 @@ def make_phrase_audio(
     )
 
     for uk_word, en_word in zip(
-        make_words_list(words_translate),
-        make_words_list(words),
+        split_words_into_list(words_translate),
+        split_words_into_list(words),
         strict=True,
     ):
         en_word_audio = make_audio_file(
@@ -486,7 +481,7 @@ def print_exercizes(
     print_sentence_translate: bool = True,
 ):
     for words, words_translate, sentence, sentence_translate in phrases:
-        words_list = make_words_list(words)
+        words_list = split_words_into_list(words)
         if lookup_word and lookup_word not in words_list:
             continue
 
@@ -557,8 +552,8 @@ def get_unique_words_as_phrases(phrases):
         words, words_translate, _, _ = phrase
 
         for uk_word, en_word in zip(
-            make_words_list(words_translate),
-            make_words_list(words),
+            split_words_into_list(words_translate),
+            split_words_into_list(words),
             strict=True,
         ):
             # foreign_native__words_dict[en_word].add(uk_word)
@@ -619,7 +614,6 @@ if __name__ == "__main__":
         phrases=get_unique_words_as_phrases(phrases),
         shuffle_phrases=True,
         native_first=True,
-        pause_after_first=True,
         spell_foreign=False,
         foreign_repetition_count=2,
         include_sentences=False,

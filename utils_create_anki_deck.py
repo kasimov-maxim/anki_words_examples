@@ -15,7 +15,7 @@ from reverso_scraper import (
     format_suggestions,
     format_translations,
 )
-from utils_generate_audio import make_words_list
+from utils import split_words_into_list
 
 THROTTLING_INTERVAL: int = 3
 
@@ -172,8 +172,8 @@ def create_phrases_dicts(
         print(f"Proccess phrase: {phrase}")
         words, words_translate, sentence, _ = phrase
         for uk_word, en_word in zip(
-            make_words_list(words_translate),
-            make_words_list(words),
+            split_words_into_list(words_translate),
+            split_words_into_list(words),
             strict=True,
         ):
             words_dict[en_word].add(uk_word)
