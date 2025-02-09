@@ -140,13 +140,15 @@ def create_phrases_deck(
     deck_id: str,
     model_name: str,
     phrases: Sequence[tuple[str, str, str, str]],
+    create_new_deck: bool = True,
 ):
     deck_id = deck_id.strip()
     model_name = model_name.strip()
 
     words_dict, examples_dict = create_phrases_dicts(phrases=phrases)
 
-    send_anki_request("createDeck", deck=deck_id)
+    if create_new_deck:
+        send_anki_request("createDeck", deck=deck_id)
     num = 1
     for word, translates in words_dict.items():
         print(f"{num}: Create card for: {word}")
