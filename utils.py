@@ -93,6 +93,67 @@ def get_words_list_from_csv(
         )
 
 
+def get_words_exercises_from_csv(
+    filename: str,
+    delimeter: str = "\t",
+    foreign_column_number: int = 1,
+    native_column_number: int = 3,
+    encoding="utf-8",
+) -> set:
+    """
+    get words exercises from csv file like this below:
+        1	abandon	v. B2	відмовитися
+        2	ability	n. A2	здатність
+        3	able	adj. A2	здатний
+        ...
+        1547	live1	v. A1	live1
+        ...
+
+    Args:
+        filename (str): name of a csv formated file.
+        delimeter (str, optional): columns delimeter.
+            Defaults to "\t".
+        foreign_column_number (int, optional): foreign word column number.
+            Defaults to 1.
+        native_column_number (int, optional): native word column number.
+            Defaults to 3.
+        encoding (str, optional): file's encoding.
+
+    Returns: list of exercises like this:
+        [
+            (
+                "blanket, curtain",
+                "ковдра, штора",
+                "She pulled the blanket over herself and drew the curtains.",
+                "Вона натягнула на себе ковдру і закрила штори.",
+            ),
+        ]
+    """
+    max_column_number = max(foreign_column_number, native_column_number)
+    with open(filename, encoding=encoding) as file:
+        reader = csv.reader(file, delimiter=delimeter)
+        rows = tuple(
+            (
+                row[foreign_column_number]
+                .strip("1234567890 ")
+                .replace(",", "/"),
+                row[native_column_number]
+                .strip("1234567890 ")
+                .replace(",", "/"),
+            )
+            for row in reader
+            if len(row) >= max_column_number
+        )
+        return [
+            (
+                ", ".join([row[0] for row in rows]),
+                ", ".join([row[1] for row in rows]),
+                "u",  # place holder
+                "u",  # place holder
+            ),
+        ]
+
+
 # def get_phrases_words(phrases):
 #     res = set()
 #     for phrase in phrases:

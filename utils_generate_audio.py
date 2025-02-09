@@ -10,7 +10,7 @@ from typing import Sequence
 
 from gtts import gTTS
 
-from utils import split_words_into_list
+from utils import get_words_exercises_from_csv, split_words_into_list
 
 TEMP_DIR = "temp_audio"
 OUTPUT_DIR = "audio"
@@ -595,15 +595,16 @@ def get_unique_words_as_phrases(phrases):
 
 if __name__ == "__main__":
 
-    from learning_material_3_1 import phrases
+    from learning_materials.all_materials import phrases
 
     # english -> pause -> ukraine
+    # without spell
     generate_audio(
         phrases=phrases,
         shuffle_phrases=True,
         native_first=False,
         spell_foreign=False,
-        pause_after_first=True,
+        first_pause_duration_after_native_word=2,
         include_sentences_summary=False,
         foreign_tld="us",
     )
@@ -620,12 +621,33 @@ if __name__ == "__main__":
         include_sentences_summary=False,
         foreign_tld="us",
     )
+    # words only practice: ukraine -> pause -> english
+    generate_audio(
+        # phrases=get_unique_words_as_phrases(phrases),
+        phrases=get_unique_words_as_phrases(
+            get_words_exercises_from_csv(
+                "./words_lists/ameriacan_oxford_3000_words_with_ukraine_selected_to_learn.txt",  # noqa: E501
+                delimeter="\t",
+                foreign_column_number=1,
+                native_column_number=3,
+            ),
+        ),
+        shuffle_phrases=True,
+        native_first=True,
+        first_pause_duration_after_native_word=2,
+        spell_foreign=False,
+        foreign_repetition_count=2,
+        include_sentences=False,
+        include_sentences_summary=False,
+        foreign_tld="us",
+        shoud_print_exercizes=False,
+    )
     # with spell
     generate_audio(
         phrases=phrases,
         shuffle_phrases=True,
         native_first=True,
-        pause_after_first=True,
+        first_pause_duration_after_native_word=2,
         spell_foreign=True,
         foreign_repetition_count=2,
         include_sentences_summary=False,
