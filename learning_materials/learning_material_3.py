@@ -324,13 +324,13 @@ phrases = [
     ),
     (
         "bond",
-        "зв'язок - узи",
+        "зв'язок / узи",
         "Their bond of trust made their friendship stronger",
         "Їхні узи довіри зробили їхню дружбу міцнішою",
     ),
     (
         "bond",
-        "зв'язок - узи",
+        "зв'язок / узи",
         "parents have a genetic bond about their children",
         "батьки мають генетичний зв’язок зі своїми дітьми",
     ),
@@ -493,7 +493,7 @@ phrases = [
     ),
     (
         "scatter, ground, substance",
-        "розкидати, земля - основа, речовина",
+        "розкидати, земля / основа, речовина",
         "Immune cells scattered around the ground substance.",
         "Імунні клітини розкидані по основній речовині.",
     ),
@@ -740,19 +740,19 @@ phrases = [
     #     "Раптовий шум викликав паніку в натовпі",
     # ),
     (
-        "in time - on time",
+        "in time / on time",
         "вчасно",
         "'in time' means 'before it's too late'",
         "«in time» означає «поки не пізно»",
     ),
     (
-        "in time - on time",
+        "in time / on time",
         "вчасно",
         "He rescued the child from the river just in time",
         "Він врятував дитину з річки вчасно",
     ),
     (
-        "in time - on time",
+        "in time / on time",
         "вчасно",
         "'on time' means 'at the arranged or correct time'",
         "on time» означає «в домовлений або правильний час»",
@@ -995,7 +995,7 @@ phrases = [
     ),
     (
         "fee, due",
-        "плата, підлягає оплаті - запланований",
+        "плата, підлягає оплаті / запланований",
         # у цьому прикладі
         # "due" позначає, що термін сплати збору за послугу вже минув.
         "The fee for the service was due yesterday",
@@ -1003,13 +1003,13 @@ phrases = [
     ),
     (
         "due",
-        "підлягає оплаті - запланований",
+        "підлягає оплаті / запланований",
         "The bill is due tomorrow",
         "Рахунок потрібно оплатити завтра",
     ),
     (
         "due",
-        "підлягає оплаті - запланований",
+        "підлягає оплаті / запланований",
         "She deserves due recognition for her work.",
         "Вона заслуговує на належне визнання за свою роботу",
     ),

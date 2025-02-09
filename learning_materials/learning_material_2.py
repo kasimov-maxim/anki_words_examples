@@ -480,7 +480,7 @@ phrases = [
         "Двір був оточений парканом із міді",
     ),
     (
-        "cheek, gaze - glance",
+        "cheek, gaze / glance",
         "щока, погляд",
         "She felt her cheek burn under his gaze",
         "Вона відчула, як горить її щока під його поглядом",
@@ -691,7 +691,7 @@ phrases = [
         "Суперечка щодо межі була нарешті врегульована мирно",
     ),
     (
-        "cheer, effort, outcome, apparent - obvious - evident",
+        "cheer, effort, outcome, apparent / obvious / evident",
         "радість, зусилля, результат, очевидний",
         "Their cheer grew as the outcome of their effort became apparent",
         "Їхня радість зростала, коли результат їхніх зусиль став очевидним",

@@ -557,13 +557,13 @@ def get_unique_words_as_phrases(phrases):
             strict=True,
         ):
             # foreign_native__words_dict[en_word].add(uk_word)
-            for i in map(lambda x: x.strip(), re.split("[/-]", uk_word)):
+            for i in map(lambda x: x.strip(), re.split("[/]", uk_word)):
                 foreign_native__words_dict[en_word].add(i)
             # ^--
 
             # native_foreign__words_dict[uk_word].add(en_word)
-            for i in map(lambda x: x.strip(), re.split("[/-]", en_word)):
-                for j in map(lambda x: x.strip(), re.split("[/-]", uk_word)):
+            for i in map(lambda x: x.strip(), re.split("[/]", en_word)):
+                for j in map(lambda x: x.strip(), re.split("[/]", uk_word)):
                     native_foreign__words_dict[j].add(i)
             # ^--
 
