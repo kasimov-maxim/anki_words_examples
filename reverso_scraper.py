@@ -1,9 +1,20 @@
+import hashlib
+import os
+import re
+import time
+import urllib
 from collections import defaultdict
 from enum import Enum
 from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
+
+TRANSLATION_CACHE_DIR = "reverso__translation_cache"
+SYNONYM_CACHE_DIR = "reverso__synonym_cache"
+THROTTLING_INTERVAL: int = 3
+TRANSLATION_LAST_REQUEST_TIME = None
+SYNONYM_LAST_REQUEST_TIME = None
 
 
 class Language(str, Enum):
@@ -237,6 +248,83 @@ def format_examples(parsed_data: list[tuple[str, str]]) -> str:
     )
 
 
+def get_cache_filename(
+    cache_dir: str,
+    word: str,
+    source_language: Language,
+    target_language: Language = None,
+) -> str:
+
+    def get_text_hash(text: str) -> str:
+        return hashlib.md5(text.encode("utf-8")).hexdigest()
+
+    # ^--
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    is_latin = bool(re.fullmatch(r"[a-zA-Z]+", word))
+
+    if target_language:
+        translate_direction = f"{source_language}_{target_language}"
+    else:
+        translate_direction = f"{source_language}"
+
+    if " " in word:  # Якщо це речення, створити хеш
+        filename = f"__s_{get_text_hash(word)}__{translate_direction}"
+    elif is_latin:  # Якщо це слово з латинськими символами
+        filename = (
+            f"{urllib.parse.quote(word.encode('utf-8'))}__"
+            f"{translate_direction}"
+        )
+    else:
+        filename = f"__w_{get_text_hash(word)}__{translate_direction}"
+
+    output_path = os.path.join(cache_dir, f"{filename}.html")
+    return output_path
+
+
+def get_cached_content(
+    cache_dir: str,
+    word: str,
+    source_language: Language,
+    target_language: Language = None,
+) -> str | None:
+    cached_filename = get_cache_filename(
+        cache_dir=cache_dir,
+        word=word,
+        source_language=source_language,
+        target_language=target_language,
+    )
+
+    if os.path.exists(cached_filename):
+        print(
+            f'HTML-content already exists for word: "{word}" '
+            f'at "{cached_filename}"',
+        )
+        with open(cached_filename, "r", encoding="utf-8") as content_file:
+            return content_file.read()
+
+    return None
+
+
+def save_cached_content(
+    content,
+    cache_dir: str,
+    word: str,
+    source_language: Language,
+    target_language: Language = None,
+) -> None:
+    cached_filename = get_cache_filename(
+        cache_dir=cache_dir,
+        word=word,
+        source_language=source_language,
+        target_language=target_language,
+    )
+
+    with open(cached_filename, "w", encoding="utf-8") as content_file:
+        content_file.write(content)
+
+
 def fetch_reverso_content(
     word: str,
     source_language: Language,
@@ -252,6 +340,31 @@ def fetch_reverso_content(
     :raises Timeout: If the request takes longer
         than the specified timeout (15 seconds).
     """
+    global TRANSLATION_LAST_REQUEST_TIME
+
+    cached_content = get_cached_content(
+        cache_dir=TRANSLATION_CACHE_DIR,
+        word=word,
+        source_language=source_language,
+        target_language=target_language,
+    )
+    if cached_content:
+        return cached_content
+
+    # Respect throttling interval
+    current_time = time.time()
+    if TRANSLATION_LAST_REQUEST_TIME and (
+        current_time - TRANSLATION_LAST_REQUEST_TIME < THROTTLING_INTERVAL
+    ):
+        sleep_time = THROTTLING_INTERVAL - (
+            current_time - TRANSLATION_LAST_REQUEST_TIME
+        )
+        print(
+            f"Sleeping for {sleep_time:.2f} seconds to respect rate limit "
+            "for translation content",
+        )
+        time.sleep(sleep_time)
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -268,6 +381,17 @@ def fetch_reverso_content(
 
     # Check for successful response
     response.raise_for_status()
+
+    # Update last request time
+    TRANSLATION_LAST_REQUEST_TIME = time.time()
+
+    save_cached_content(
+        content=response.text,
+        cache_dir=TRANSLATION_CACHE_DIR,
+        word=word,
+        source_language=source_language,
+        target_language=target_language,
+    )
 
     return response.text
 
@@ -424,6 +548,30 @@ def fetch_reverso_synonym_content(
     :raises Timeout: If the request takes longer
         than the specified timeout (15 seconds).
     """
+    global SYNONYM_LAST_REQUEST_TIME
+
+    cached_content = get_cached_content(
+        cache_dir=SYNONYM_CACHE_DIR,
+        word=word,
+        source_language=language,
+    )
+    if cached_content:
+        return cached_content
+
+    # Respect throttling interval
+    current_time = time.time()
+    if SYNONYM_LAST_REQUEST_TIME and (
+        current_time - SYNONYM_LAST_REQUEST_TIME < THROTTLING_INTERVAL
+    ):
+        sleep_time = THROTTLING_INTERVAL - (
+            current_time - SYNONYM_LAST_REQUEST_TIME
+        )
+        print(
+            f"Sleeping for {sleep_time:.2f} seconds to respect rate limit "
+            "for synonym content",
+        )
+        time.sleep(sleep_time)
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -436,8 +584,18 @@ def fetch_reverso_synonym_content(
     # Send GET request
     response = requests.get(url, headers=headers, timeout=15)
 
+    # Update last request time
+    SYNONYM_LAST_REQUEST_TIME = time.time()
+
     # Check for successful response
     response.raise_for_status()
+
+    save_cached_content(
+        content=response.text,
+        cache_dir=SYNONYM_CACHE_DIR,
+        word=word,
+        source_language=language,
+    )
 
     return response.text
 

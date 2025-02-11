@@ -1,4 +1,3 @@
-import time
 from collections import defaultdict
 from typing import Sequence
 
@@ -16,8 +15,6 @@ from reverso_scraper import (
     format_translations,
 )
 from utils import split_words_into_list
-
-THROTTLING_INTERVAL: int = 3
 
 
 def create_phrase_card(
@@ -132,7 +129,6 @@ def create_deck_from_filelist(
                 print(f"{num}: Created card for {word}")
             except ServerError as err:
                 print(f"{num}: Error for {word}: {err}")
-            time.sleep(THROTTLING_INTERVAL)
             num += 1
 
 
@@ -160,7 +156,6 @@ def create_phrases_deck(
             word_translates=translates,
             examples=examples,
         )
-        time.sleep(THROTTLING_INTERVAL)
         num += 1
     # ^--
 
