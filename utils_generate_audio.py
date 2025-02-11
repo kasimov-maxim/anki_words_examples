@@ -166,6 +166,11 @@ def generate_audio(
             if include_sentences_summary:
                 options.append("summary")
 
+            if include_sentences:
+                options.append("with_sentences")
+            else:
+                options.append("words_only")
+
             options.append(date.today().strftime("%d-%m"))
 
             _output_filename = f"{'_'.join(options)}"
