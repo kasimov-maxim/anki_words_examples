@@ -118,7 +118,7 @@ def generate_audio(
     first_pause_duration_after_native_word: int = 2,
     first_pause_duration_after_foreign_word: int = 4,
     pause_duration_after_native_sentence: int = 12,
-    first_pause_duration_after_foreign_sentence: int = 2,
+    first_pause_duration_after_foreign_sentence: int = 5,
     second_pause_duration_after_foreign_sentence: int = 4,
     foreign_repetition_count: int = 2,
     foreign_tld: str = "com",
